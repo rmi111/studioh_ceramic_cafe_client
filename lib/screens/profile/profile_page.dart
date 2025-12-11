@@ -85,28 +85,26 @@ class OwnProfileScreen extends StatelessWidget {
                   const SizedBox(height: 10),
 
                   // Menu Options
-                  Expanded(
-                    child: Container(
-                      margin: EdgeInsets.symmetric(horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(30),
-                        ),
+                  Container(
+                    margin: EdgeInsets.symmetric(horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(30),bottom: Radius.circular(30)
                       ),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 20,
-                        ),
-                        child: Column(
-                          children: [
-
-                            _PremiumCard(),
-                            const SizedBox(height: 14),
-                            _LogoutButton(),
-                          ],
-                        ),
+                    ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 20,
+                      ),
+                      child: Column(
+                        children: [
+                  
+                          _PremiumCard(),
+                          const SizedBox(height: 14),
+                          _LogoutButton(),
+                        ],
                       ),
                     ),
                   ),

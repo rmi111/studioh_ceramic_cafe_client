@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -12,67 +11,65 @@ import 'package:studioh_ceramic_cafe_client/cubit/chat_cubit/chat_cubit.dart';
 import 'package:studioh_ceramic_cafe_client/firebase_options.dart';
 import 'package:studioh_ceramic_cafe_client/utils/route/app_router.dart';
 import 'package:studioh_ceramic_cafe_client/utils/route/app_routes.dart';
-
 import 'cubit/order_cubit/order_cubit.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
 
-// ✅ Flag to track initialization status
+//  Flag to track initialization status
 bool _initializationComplete = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ Initialize Firebase immediately (required for app)
+  //  Initialize Firebase immediately (required for app)
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
+    await Firebase.initializeApp(  options: DefaultFirebaseOptions.currentPlatform,
     );
-    print('✅ Firebase initialized');
+    print(' Firebase initialized');
   } catch (e) {
-    print('❌ Firebase initialization error: $e');
+    print(' Firebase initialization error: $e');
   }
 
   runApp(const MyApp());
 
-  // ✅ Setup messaging in background (doesn't block UI)
+  //  Setup messaging in background (doesn't block UI)
   _setupMessaging();
 }
 
 Future<void> _setupMessaging() async {
   try {
-    print('🔄 Setting up messaging in background...');
+    print('Setting up messaging in background...');
 
-    // 🔔 Request permissions (iOS only)
+    //  Request permissions (iOS only)
     await FirebaseMessaging.instance.requestPermission(
       provisional: true,
       alert: true,
       badge: true,
       sound: true,
     );
-    print('✅ Permissions requested');
+    print(' Permissions requested');
 
-    // 🔑 Get tokens asynchronously
+    // Get tokens asynchronously
     final apnsToken = await FirebaseMessaging.instance.getAPNSToken();
     print('APNS Token: $apnsToken');
 
     final fcmToken = await FirebaseMessaging.instance.getToken();
     print('Initial FCM Token: $fcmToken');
 
-    // ✅ Subscribe to topic
+    //  Subscribe to topic
     await FirebaseMessaging.instance.subscribeToTopic('allUsers');
-    print('✅ Subscribed to topic');
+    print(' Subscribed to topic');
 
     // Initialize RevenueCat in background
     try {
       await initializeRevenueCat();
-      print('✅ RevenueCat initialized');
+      print('RevenueCat initialized');
     } catch (e) {
-      print('⚠️ RevenueCat initialization failed: $e');
+      print(' RevenueCat initialization failed: $e');
     }
 
-    // 🔔 Setup local notifications
+    //  Setup local notifications
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -93,9 +90,9 @@ Future<void> _setupMessaging() async {
         }
       },
     );
-    print('✅ Local notifications initialized');
+    print(' Local notifications initialized');
 
-    // ✅ Create Android channel
+    //  Create Android channel
     const channel = AndroidNotificationChannel(
       'default_channel',
       'General Notifications',
@@ -110,7 +107,7 @@ Future<void> _setupMessaging() async {
     >()
         ?.createNotificationChannel(channel);
 
-    // ✅ Setup message handlers
+    // Setup message handlers
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       final notification = message.notification;
       final data = message.data;
@@ -158,7 +155,7 @@ Future<void> _setupMessaging() async {
       print('Refreshed FCM Token: $token');
     });
 
-    print('✅ All messaging setup complete');
+    print('All messaging setup complete');
     _initializationComplete = true;
   } catch (e) {
     print('❌ Error in messaging setup: $e');
@@ -248,21 +245,21 @@ class _SplashScreenState extends State<SplashScreen> {
       // Get AuthCubit
       final authCubit = context.read<AuthCubit>();
 
-      // ✅ Check login status from SharedPreferences (fast)
-      print('🔍 Checking login status...');
+      //  Check login status from SharedPreferences (fast)
+      print(' Checking login status...');
       await authCubit.checkLoginStatus();
-      print('✅ Login status checked');
+      print('Login status checked');
 
-      // ✅ Wait for messaging setup to complete (in background)
-      print('⏳ Waiting for initialization to complete...');
+      // Wait for messaging setup to complete (in background)
+      print(' Waiting for initialization to complete...');
       int attempts = 0;
       while (!_initializationComplete && attempts < 30) {
         await Future.delayed(const Duration(milliseconds: 100));
         attempts++;
       }
-      print('✅ Initialization complete (attempts: $attempts)');
+      print(' Initialization complete (attempts: $attempts)');
 
-      // ✅ Minimum splash screen duration for UX
+      //  Minimum splash screen duration for UX
       await Future.delayed(const Duration(seconds: 1));
 
       if (!mounted) return;
@@ -275,18 +272,18 @@ class _SplashScreenState extends State<SplashScreen> {
       print('Current User: ${currentUser?.email}');
 
       if (isLoggedIn && currentUser != null) {
-        print('✅ User is logged in. Going to home...');
+        print(' User is logged in. Going to home...');
         if (mounted) {
           Navigator.pushReplacementNamed(context, AppRoutes.home);
         }
       } else {
-        print('❌ User is not logged in. Going to login...');
+        print(' User is not logged in. Going to login...');
         if (mounted) {
           Navigator.pushReplacementNamed(context, AppRoutes.login);
         }
       }
     } catch (e) {
-      print('❌ Error checking login status: $e');
+      print(' Error checking login status: $e');
       if (mounted) {
         Navigator.pushReplacementNamed(context, AppRoutes.login);
       }

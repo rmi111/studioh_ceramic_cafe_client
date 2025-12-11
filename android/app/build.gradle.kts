@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.studioh_ceramic_cafe_client"
+    namespace = "co.za.studioh"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -23,7 +23,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.studioh_ceramic_cafe_client"
+        applicationId = "co.za.studioh"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -44,6 +44,5 @@ flutter {
 dependencies {
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
-
 
 }

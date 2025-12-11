@@ -46,10 +46,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   bool isValidPhone(String phone) {
-    return phone.isNotEmpty;
-    final cleanedPhone = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
-    final phoneRegex = RegExp(r'^(?:\+27|27|0)\d{9}$');
-    return phoneRegex.hasMatch(cleanedPhone);
+    final phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
+    return phoneRegex.hasMatch(phone);
   }
 
   void _validateAndRegister(BuildContext context) {
@@ -73,12 +71,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     // All validations passed, call cubit
-  //   context.read<AuthCubit>().onRegistration(
-  //  //   context: context,
-  //     email: email,
-  //     name: name,
-  //     phone: phone,
-  //   );
+    context.read<AuthCubit>().onRegistration(
+      context: context,
+      email: email,
+      name: name,
+      phone: phone,
+    );
   }
 
   @override

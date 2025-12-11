@@ -1,4 +1,3 @@
-import 'dart:math';
 
 import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,6 +8,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:studioh_ceramic_cafe_client/model/user.dart';
 import 'package:studioh_ceramic_cafe_client/utils/constant/firebase_collection_name.dart';
+import 'package:studioh_ceramic_cafe_client/utils/widget/snacke_bar.dart';
 part 'auth_state.dart';
 class AuthCubit extends Cubit<AuthState> {
   AuthCubit()
@@ -304,7 +304,60 @@ class AuthCubit extends Cubit<AuthState> {
   void setCurrentUserData(UserModel user) {
     emit(state.copyWith(currentUserModel: user));
   }
+Future<void> onRegistration({
+  required BuildContext context,
+    required String email,
+    required String name,
+    required String phone,
+    String imageUrl =
+        "https://t4.ftcdn.net/jpg/03/64/21/11/240_F_364211147_1qgLVxv1Tcq0Ohz3FawUfrtONzz8nq3e.jpg",
+  }) async {
+    emit(state.copyWith(isLoading: true));
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.USERS)
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
 
+      if (querySnapshot.docs.isNotEmpty) {
+        emit(state.copyWith(isLoading: false));
+       AppSnackbar.showError(context, "User already exists");
+      } else {
+        final docRef = FirebaseFirestore.instance
+            .collection(FirebaseCollectionName.USERS)
+            .doc();
+        final customUid = docRef.id;
+
+        await docRef.set({
+          'uid': customUid,
+          'email': email,
+          'phoneNumber': phone,
+          'userType': "customer",
+          'imageUrl': imageUrl,
+          'name': name,
+          'enrolledByClient': false,
+        });
+
+        final user = UserModel(
+          uid: customUid,
+          email: email,
+          name: name,
+          phoneNumber: phone,
+          imageUrl: imageUrl,
+          userType: "customer",
+        );
+
+        emit(state.copyWith(currentUserModel: user, isLoading: false,userEmail: email,userType: "customer",isLoggedIn: true,));
+        print(" Email: $email");
+        print(" UID: $customUid");
+       // Get.offAll(() => LoginScreen());
+      }
+    } catch (e) {
+      emit(state.copyWith(isLoading: false));
+      print("Error saving user: $e");
+    }
+  }
   /// Fetch all users
   Future<void> fetchAllUsers() async {
     try {

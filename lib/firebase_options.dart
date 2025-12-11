@@ -41,48 +41,53 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBihDPXnz26MteiuFmBGWIz4RpDmej8hM4',
-    appId: '1:95867617686:web:ae5c6c318d861eae059db7',
-    messagingSenderId: '95867617686',
-    projectId: 'ceramic-cafe-client',
-    authDomain: 'ceramic-cafe-client.firebaseapp.com',
-    storageBucket: 'ceramic-cafe-client.firebasestorage.app',
-    measurementId: 'G-T42CVESDZ4',
+    apiKey: 'AIzaSyBwsSXJbKu8JaI6xD5EJDSBHVUzz-Dz374',
+    appId: '1:646227080671:web:645c11cc680e82a815006a',
+    messagingSenderId: '646227080671',
+    projectId: 'opportune-ego-460309-u3',
+    authDomain: 'opportune-ego-460309-u3.firebaseapp.com',
+    storageBucket: 'opportune-ego-460309-u3.firebasestorage.app',
+    measurementId: 'G-77VMY1L5SZ',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyA3T46q2Yh5arneWecKRbhefsbbHttnpZ8',
-    appId: '1:95867617686:android:5938ac762ff5d2d7059db7',
-    messagingSenderId: '95867617686',
-    projectId: 'ceramic-cafe-client',
-    storageBucket: 'ceramic-cafe-client.firebasestorage.app',
+    apiKey: 'AIzaSyBUVGJT0bhnlKi2XUJaSXn9hSuYzuIbHyE',
+    appId: '1:646227080671:android:fc963b0ba4c0d24115006a',
+    messagingSenderId: '646227080671',
+    projectId: 'opportune-ego-460309-u3',
+    storageBucket: 'opportune-ego-460309-u3.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDgVWuWRdXAYlumT_n0I1XK5brHAnQUvBI',
-    appId: '1:95867617686:ios:b4ef972b89929600059db7',
-    messagingSenderId: '95867617686',
-    projectId: 'ceramic-cafe-client',
-    storageBucket: 'ceramic-cafe-client.firebasestorage.app',
+    apiKey: 'AIzaSyAxNJM0lIDY7Ge7E9eR2QjGG7qIWuPtkBc',
+    appId: '1:646227080671:ios:3444c73d7e39c29415006a',
+    messagingSenderId: '646227080671',
+    projectId: 'opportune-ego-460309-u3',
+    storageBucket: 'opportune-ego-460309-u3.firebasestorage.app',
+    androidClientId: '646227080671-r1bsheicnb7rt2rc76pnd7jhj0ragiu9.apps.googleusercontent.com',
+    iosClientId: '646227080671-iehs55esvha9niqip06s3hnv4ibeik9l.apps.googleusercontent.com',
     iosBundleId: 'com.example.studiohCeramicCafeClient',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDgVWuWRdXAYlumT_n0I1XK5brHAnQUvBI',
-    appId: '1:95867617686:ios:b4ef972b89929600059db7',
-    messagingSenderId: '95867617686',
-    projectId: 'ceramic-cafe-client',
-    storageBucket: 'ceramic-cafe-client.firebasestorage.app',
+    apiKey: 'AIzaSyAxNJM0lIDY7Ge7E9eR2QjGG7qIWuPtkBc',
+    appId: '1:646227080671:ios:3444c73d7e39c29415006a',
+    messagingSenderId: '646227080671',
+    projectId: 'opportune-ego-460309-u3',
+    storageBucket: 'opportune-ego-460309-u3.firebasestorage.app',
+    androidClientId: '646227080671-r1bsheicnb7rt2rc76pnd7jhj0ragiu9.apps.googleusercontent.com',
+    iosClientId: '646227080671-iehs55esvha9niqip06s3hnv4ibeik9l.apps.googleusercontent.com',
     iosBundleId: 'com.example.studiohCeramicCafeClient',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBihDPXnz26MteiuFmBGWIz4RpDmej8hM4',
-    appId: '1:95867617686:web:75ad9da5c1e0f58e059db7',
-    messagingSenderId: '95867617686',
-    projectId: 'ceramic-cafe-client',
-    authDomain: 'ceramic-cafe-client.firebaseapp.com',
-    storageBucket: 'ceramic-cafe-client.firebasestorage.app',
-    measurementId: 'G-RGX0JZRTF4',
+    apiKey: 'AIzaSyBwsSXJbKu8JaI6xD5EJDSBHVUzz-Dz374',
+    appId: '1:646227080671:web:1b3ce08ed6481b8715006a',
+    messagingSenderId: '646227080671',
+    projectId: 'opportune-ego-460309-u3',
+    authDomain: 'opportune-ego-460309-u3.firebaseapp.com',
+    storageBucket: 'opportune-ego-460309-u3.firebasestorage.app',
+    measurementId: 'G-CC9PQCVC8P',
   );
+
 }

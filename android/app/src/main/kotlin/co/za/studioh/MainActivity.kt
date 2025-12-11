@@ -1,4 +1,4 @@
-package com.example.studioh_ceramic_cafe_client
+package co.za.studioh
 
 import io.flutter.embedding.android.FlutterActivity
 

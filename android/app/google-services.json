@@ -1,26 +1,79 @@
 {
   "project_info": {
-    "project_number": "95867617686",
-    "project_id": "ceramic-cafe-client",
-    "storage_bucket": "ceramic-cafe-client.firebasestorage.app"
+    "project_number": "646227080671",
+    "project_id": "opportune-ego-460309-u3",
+    "storage_bucket": "opportune-ego-460309-u3.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:95867617686:android:5938ac762ff5d2d7059db7",
+        "mobilesdk_app_id": "1:646227080671:android:46e16650b010edbb15006a",
         "android_client_info": {
-          "package_name": "com.example.studioh_ceramic_cafe_client"
+          "package_name": "co.za.studio_admin"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "646227080671-l1ammtc4gmhhv7gvlqtrg5mkl89vr3ln.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyA3T46q2Yh5arneWecKRbhefsbbHttnpZ8"
+          "current_key": "AIzaSyBUVGJT0bhnlKi2XUJaSXn9hSuYzuIbHyE"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "646227080671-l1ammtc4gmhhv7gvlqtrg5mkl89vr3ln.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "646227080671-3pm4g4g4beqh0g3onu8hg2q936un5m2k.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "co.za.studioh"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:646227080671:android:fc963b0ba4c0d24115006a",
+        "android_client_info": {
+          "package_name": "co.za.studioh"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "646227080671-l1ammtc4gmhhv7gvlqtrg5mkl89vr3ln.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBUVGJT0bhnlKi2XUJaSXn9hSuYzuIbHyE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "646227080671-l1ammtc4gmhhv7gvlqtrg5mkl89vr3ln.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "646227080671-3pm4g4g4beqh0g3onu8hg2q936un5m2k.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "co.za.studioh"
+              }
+            }
+          ]
         }
       }
     }
