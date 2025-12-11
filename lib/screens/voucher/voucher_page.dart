@@ -1,0 +1,501 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+import 'package:lottie/lottie.dart';
+import 'package:studioh_ceramic_cafe_client/cubit/voucher_cubit/voucher_cubit.dart';
+import 'package:studioh_ceramic_cafe_client/cubit/voucher_cubit/voucher_state.dart';
+import 'package:studioh_ceramic_cafe_client/model/voucher.dart';
+import 'package:studioh_ceramic_cafe_client/screens/voucher/voucher_details.dart';
+import 'package:studioh_ceramic_cafe_client/utils/constant/app_colors.dart';
+
+class VoucherPage extends StatefulWidget {
+  const VoucherPage({Key? key}) : super(key: key);
+
+  @override
+  State<VoucherPage> createState() => _VoucherPageState();
+}
+
+class _VoucherPageState extends State<VoucherPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 1, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => VoucherCubit(),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          automaticallyImplyLeading: false,
+          elevation: 0,
+          title: const Text(
+            'Vouchers',
+            style: TextStyle(
+              color: Colors.black87,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
+
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.card_giftcard, color: Color(0xFFD4AF37)),
+              onPressed: () {
+                // Navigate to buy gift voucher
+              },
+            ),
+          ],
+        ),
+        body: BlocBuilder<VoucherCubit, VoucherState>(
+          builder: (context, state) {
+            if (state.isLoading) {
+              return  Center(  child: Lottie.asset(
+                'assets/images/Animation - 1749106532062.json',
+                width: 150,
+                height: 150,
+              ),);
+            }
+
+            if (state.activeVouchers.isEmpty) {
+              return const Center(child: Text('No vouchers'));
+            }
+
+            return Column(
+              children: [
+                //    _buildStatsCard(state),
+                //_buildTabBar(),
+                _buildVoucherList(state.allVouchers, 'Vouchers'),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsCard(VoucherState state) {
+    return Container(
+      // margin: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildStatItem(
+              Icons.card_giftcard,
+              state.activeVouchers.length.toString(),
+              'Active',
+            ),
+          ),
+          Container(width: 1, height: 40, color: Colors.white.withOpacity(0.3)),
+          Expanded(
+            child: _buildStatItem(
+              Icons.check_circle,
+              state.usedVouchers.length.toString(),
+              'Used',
+            ),
+          ),
+          Container(width: 1, height: 40, color: Colors.white.withOpacity(0.3)),
+          Expanded(
+            child: _buildStatItem(
+              Icons.access_time,
+              state.expiredVouchers.length.toString(),
+              'Expired',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white, size: 28),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.white.withOpacity(0.9),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
+        ],
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          color: Color(0xFFeeae4d),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.grey[700],
+        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        dividerColor: Colors.transparent,
+        indicatorPadding: const EdgeInsets.symmetric(
+          horizontal: 4,
+          vertical: 4,
+        ),
+        tabs: [
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.flash_on, size: 18),
+                SizedBox(width: 6),
+                Text('Active'),
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.done_all, size: 18),
+                SizedBox(width: 6),
+                Text('Used'),
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.timer_off, size: 18),
+                SizedBox(width: 6),
+                Text('Expired'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVoucherList(List<Voucher> vouchers, String type) {
+    if (vouchers.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              type == 'active'
+                  ? Icons.card_giftcard_outlined
+                  : type == 'used'
+                  ? Icons.check_circle_outline
+                  : Icons.schedule,
+              size: 80,
+              color: Colors.grey[300],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              type == 'active'
+                  ? 'No active vouchers'
+                  : type == 'used'
+                  ? 'No used vouchers'
+                  : 'No expired vouchers',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              type == 'active' ? 'Subscribe to get monthly vouchers!' : '',
+              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Provide bounded height to the ListView so it can layout correctly inside Column
+    return Expanded(
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: vouchers.length,
+        itemBuilder: (context, index) {
+          return _buildVoucherCard(vouchers[index], type);
+        },
+      ),
+    );
+  }
+
+  Widget _buildVoucherCard(Voucher voucher, String type) {
+    Color statusColor = Colors.green;
+    // type == 'active'
+    //     ? Colors.green
+    //     : type == 'used'
+    //     ? Colors.blue
+    //     : Colors.grey;
+
+    return GestureDetector(
+      onTap: () {
+        // Navigate to voucher details
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VoucherDetailsScreen(
+              voucher: Voucher(
+                code: voucher.code,
+                type: voucher.type,
+                value: voucher.value,
+                description: voucher.description,
+                expiryDate: voucher.expiryDate,
+                isActive: voucher.isActive,
+                redeemedDate: voucher.redeemedDate,
+              ),
+            ),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFFD4AF37).withOpacity(0.3),
+            // type == 'active'
+            //     ? const Color(0xFFD4AF37).withOpacity(0.3)
+            //     : Colors.grey[200]!,
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // Header with golden accent
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFD4AF37), Color(0xFFFFD700)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+
+                color: type != 'active' ? Colors.grey[100] : null,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _getVoucherIcon(voucher.type),
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          voucher.type,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          voucher.value,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.9),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      type.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    voucher.description,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[700],
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Voucher code
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.confirmation_number,
+                          size: 18,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            voucher.code,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[800],
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.copy, size: 16, color: Colors.grey[600]),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Footer info
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 14,
+                        color: Colors.grey[500],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        type == 'used'
+                            ? 'Redeemed: ${formatDate(voucher.redeemedDate!)}'
+                            : 'Expires: ${formatDate(voucher.expiryDate)}',
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      ),
+                      const Spacer(),
+                      if (type == 'active')
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD4AF37).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            children: const [
+                              Icon(
+                                Icons.qr_code,
+                                size: 14,
+                                color: Color(0xFFD4AF37),
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Tap to view QR',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Color(0xFFD4AF37),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getVoucherIcon(String type) {
+    if (type.contains('Coffee')) return Icons.coffee;
+    if (type.contains('Discount')) return Icons.discount;
+    if (type.contains('2 for 1')) return Icons.redeem;
+    return Icons.card_giftcard;
+  }
+
+  String formatDate(int millis) {
+    DateTime orderedDate = DateTime.fromMillisecondsSinceEpoch(millis);
+    return DateFormat('dd MMM yyyy, h:mm a').format(orderedDate);
+  }
+}

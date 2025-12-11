@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "95867617686",
+    "project_id": "ceramic-cafe-client",
+    "storage_bucket": "ceramic-cafe-client.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:95867617686:android:5938ac762ff5d2d7059db7",
+        "android_client_info": {
+          "package_name": "com.example.studioh_ceramic_cafe_client"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3T46q2Yh5arneWecKRbhefsbbHttnpZ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

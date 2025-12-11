@@ -1,0 +1,167 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:studioh_ceramic_cafe_client/cubit/auth_cubit/auth_cubit.dart';
+import 'package:studioh_ceramic_cafe_client/screens/auth/login_screen.dart';
+import 'package:studioh_ceramic_cafe_client/utils/widget/app_text_field.dart';
+import 'package:studioh_ceramic_cafe_client/utils/widget/custom_btn.dart';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../utils/route/app_routes.dart';
+import '../../utils/widget/snacke_bar.dart';
+
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({Key? key}) : super(key: key);
+
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  late TextEditingController nameController;
+  late TextEditingController emailController;
+  late TextEditingController phoneNumberController;
+
+  @override
+  void initState() {
+    super.initState();
+    nameController = TextEditingController();
+    emailController = TextEditingController();
+    phoneNumberController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    phoneNumberController.dispose();
+    super.dispose();
+  }
+
+  bool isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    return emailRegex.hasMatch(email);
+  }
+
+  bool isValidPhone(String phone) {
+    return phone.isNotEmpty;
+    final cleanedPhone = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    final phoneRegex = RegExp(r'^(?:\+27|27|0)\d{9}$');
+    return phoneRegex.hasMatch(cleanedPhone);
+  }
+
+  void _validateAndRegister(BuildContext context) {
+    String name = nameController.text.trim();
+    String email = emailController.text.trim();
+    String phone = phoneNumberController.text.trim();
+
+    if (email.isEmpty || phone.isEmpty || name.isEmpty) {
+      AppSnackbar.show(context, 'Please fill in all fields.');
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      AppSnackbar.show(context, 'Please enter a valid email address.');
+      return;
+    }
+
+    if (!isValidPhone(phone)) {
+      AppSnackbar.show(context, 'Please enter a valid phone number.');
+      return;
+    }
+
+    // All validations passed, call cubit
+  //   context.read<AuthCubit>().onRegistration(
+  //  //   context: context,
+  //     email: email,
+  //     name: name,
+  //     phone: phone,
+  //   );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<AuthCubit, AuthState>(
+      listener: (context, state) {
+        if (state.message.contains('❌')) {
+          AppSnackbar.show(context, state.message);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Register'),
+          centerTitle: true,
+          titleTextStyle: const TextStyle(fontSize: 30, color: Colors.black),
+          backgroundColor: Colors.white,
+          elevation: 0,
+        ),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Center(
+              child: Column(
+                children: [
+                  Image.asset(
+                    "assets/images/Studioh_Logo.jpg",
+                    height: 180,
+                    width: 180,
+                  ),
+                  const SizedBox(height: 20),
+                  AppTextField(
+                    controller: nameController,
+                    label: 'Username',
+                    keyboardType: TextInputType.name,
+                  ),
+                  const SizedBox(height: 16),
+                  AppTextField(
+                    controller: emailController,
+                    label: 'Email',
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 16),
+                  AppTextField(
+                    controller: phoneNumberController,
+                    keyboardType: TextInputType.phone,
+                    label: 'Phone Number',
+                  ),
+                  const SizedBox(height: 24),
+                  BlocBuilder<AuthCubit, AuthState>(
+                    builder: (context, state) {
+                      return CustomButton(
+                        text: state.isLoading ? 'Registering...' : 'Register',
+                        onPressed: state.isLoading
+                            ? () {}
+                            : () => _validateAndRegister(context),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Already have an account? '),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushNamed(context, AppRoutes.login);
+                        },
+                        child: const Text(
+                          'Login',
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
