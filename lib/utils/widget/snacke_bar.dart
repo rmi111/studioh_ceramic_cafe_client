@@ -10,7 +10,7 @@ class AppSnackbar {
       SnackBar(
         content: Row(
           children: [
-            Icon(Icons.done,color: Colors.white,),SizedBox(width: 5,),
+
             Text(
               message,
               style: const TextStyle(color: Colors.white),

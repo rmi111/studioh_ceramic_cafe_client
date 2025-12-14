@@ -16,11 +16,10 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final TextEditingController emailController = TextEditingController(
-      text: "v@gmail.com",
+      
     );
 
     return BlocListener<AuthCubit, AuthState>(
-
       listener: (context, state) {
         if (state.message.contains('❌')) {
           AppSnackbar.show(context, state.message);
@@ -90,10 +89,9 @@ class LoginScreen extends StatelessWidget {
                                   return;
                                 }
 
-                                context.read<AuthCubit>().loginWithEmail(
-                                   email,
-                                 
-                                );
+                                context.read<AuthCubit>().loginWithEmail(context, email);
+
+
                               },
                       );
                     },

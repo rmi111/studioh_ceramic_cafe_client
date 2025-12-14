@@ -84,7 +84,7 @@ class OrderCubit extends Cubit<OrderState> {
         _categorizeOrders(fetchedOrders);
       },
       onError: (error) {
-        print("❌ Error listening to orders: $error");
+        print(" Error listening to orders: $error");
       },
     );
   }
@@ -388,21 +388,21 @@ class OrderCubit extends Cubit<OrderState> {
                 )
                 .toList();
 
-            print("✅ Filtered Orders: ${fetchedOrders.length}");
+            print(" Filtered Orders: ${fetchedOrders.length}");
           }
 print("Fetched Orders: ${fetchedOrders.map((o) => o.refNumber).toList()}");
           _categorizeOrders(fetchedOrders);
           emit(state.copyWith(isLoading: false));
         },
         onError: (error) {
-          print("❌ Error listening to orders: $error");
+          print(" Error listening to orders: $error");
           emit(state.copyWith(isLoading: false));
         },
       );
 
-      print("✅ Orders listener set up successfully. Length ${state.orders.length}");
+      print(" Orders listener set up successfully. Length ${state.orders.length}");
     } catch (e) {
-      print("❌ Error setting up orders listener: $e");
+      print(" Error setting up orders listener: $e");
       emit(state.copyWith(isLoading: false));
     }
   }

@@ -56,17 +56,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     String phone = phoneNumberController.text.trim();
 
     if (email.isEmpty || phone.isEmpty || name.isEmpty) {
-      AppSnackbar.show(context, 'Please fill in all fields.');
+      AppSnackbar.showError(context, 'Please fill in all fields.');
       return;
     }
 
     if (!isValidEmail(email)) {
-      AppSnackbar.show(context, 'Please enter a valid email address.');
+      AppSnackbar.showError(context, 'Please enter a valid email address.');
       return;
     }
 
     if (!isValidPhone(phone)) {
-      AppSnackbar.show(context, 'Please enter a valid phone number.');
+      AppSnackbar.showError(context, 'Please enter a valid phone number.');
       return;
     }
 

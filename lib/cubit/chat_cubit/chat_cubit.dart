@@ -86,10 +86,10 @@ class ChatCubit extends Cubit<ChatState> {
           .collection('messages')
           .add(newMessage.toMap());
 
-      print('✅ Message sent to $chatRoomId: $message');
+      print(' Message sent to $chatRoomId: $message');
       emit(state.copyWith(isLoading: false));
     } catch (e) {
-      print('❌ Error sending message: $e');
+      print(' Error sending message: $e');
       emit(state.copyWith(
         isLoading: false,
         error: 'Failed to send message: $e',
@@ -153,9 +153,9 @@ class ChatCubit extends Cubit<ChatState> {
         await doc.reference.update({'seen': true});
       }
 
-      print('✅ Messages marked as seen in $chatRoomId');
+      print(' Messages marked as seen in $chatRoomId');
     } catch (e) {
-      print('❌ Error marking messages as seen: $e');
+      print(' Error marking messages as seen: $e');
     }
   }
 

@@ -3,6 +3,7 @@ import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -63,7 +64,7 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  /// ✅ Check login status from SharedPreferences on app startup
+  /// Check login status from SharedPreferences on app startup
   Future<void> checkLoginStatus() async {
     print('🔍 Checking login status...');
     emit(state.copyWith(isLoading: true));
@@ -83,7 +84,7 @@ class AuthCubit extends Cubit<AuthState> {
       print('   uid: $savedUid');
 
       if (isLoggedIn && savedEmail != null && savedUid != null) {
-        print('✅ User was previously logged in. Fetching user data...');
+        print(' User was previously logged in. Fetching user data...');
 
         // Fetch user data from Firestore
         final userDoc = await FirebaseFirestore.instance
@@ -94,7 +95,7 @@ class AuthCubit extends Cubit<AuthState> {
         if (userDoc.exists) {
           final userModel = UserModel.fromMap(userDoc.data()!, savedUid);
 
-          print('✅ User data fetched: ${userModel.email}');
+          print(' User data fetched: ${userModel.email}');
 
           emit(state.copyWith(
             currentUserModel: userModel,
@@ -111,11 +112,11 @@ class AuthCubit extends Cubit<AuthState> {
           emit(state.copyWith(isLoading: false, isLoggedIn: false));
         }
       } else {
-        print('❌ No previous login found. Show login screen.');
+        print(' No previous login found. Show login screen.');
         emit(state.copyWith(isLoading: false, isLoggedIn: false));
       }
     } catch (e) {
-      print('❌ Error checking login status: $e');
+      print(' Error checking login status: $e');
       emit(state.copyWith(
         isLoading: false,
         isLoggedIn: false,
@@ -123,9 +124,97 @@ class AuthCubit extends Cubit<AuthState> {
       ));
     }
   }
+  Future<void> checkFirstLoginAndShowWelcome(BuildContext context, String uid) async {
+    print(' Checking first login for user: $uid');
 
-  /// ✅ Email login (no Firebase Auth needed)
-  Future<void> loginWithEmail(String email) async {
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.USERS)
+          .doc(uid)
+          .get();
+
+      print(' User document exists: ${userDoc.exists}');
+
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
+        final enrolledByClient = data['enrolledByClient'] ?? false;
+
+        print('enrolledByClient: $enrolledByClient');
+
+        if (!enrolledByClient) {
+          print('✅ First login detected! Showing welcome...');
+
+          // 1. Show welcome local notification
+          try {
+            await _flutterLocalNotificationsPlugin.show(
+              0,
+              'Thanks for downloading the Studioh! App 🎉',
+              'Please message us if you need assistance',
+              const NotificationDetails(
+                android: AndroidNotificationDetails(
+                  'default_channel',
+                  'General',
+                  channelDescription: 'General notifications',
+                  importance: Importance.max,
+                  priority: Priority.high,
+                  sound: RawResourceAndroidNotificationSound('default'),
+                ),
+                iOS: DarwinNotificationDetails(sound: 'default'),
+              ),
+            );
+            print('✅ Welcome notification shown');
+          } catch (e) {
+            print(' Error showing notification: $e');
+          }
+
+          // 2. Show welcome dialog
+          try {
+            if(context.mounted) {
+              await showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: const Text("Welcome 🎉"),
+                    content: const Text(
+                      "Thanks for joining our app! We're glad to have you on board.",
+                    ),
+                    actions: [
+                      TextButton(
+                        child: const Text("Continue"),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  );
+                },
+
+                barrierDismissible: false,
+              );
+
+              print('✅ Welcome dialog shown');
+            }
+          } catch (e) {
+            print('Error showing dialog: $e');
+          }
+
+          // 3. Update Firestore so this runs only once
+          try {
+            await userDoc.reference.update({'enrolledByClient': true});
+            print('✅ Updated enrolledByClient flag');
+          } catch (e) {
+            print('Error updating flag: $e');
+          }
+        } else {
+          print(' User already enrolled, skipping welcome');
+        }
+      } else {
+        print(' User document does not exist');
+      }
+    } catch (e) {
+      print('❌ Error checking first login: $e');
+    }
+  }
+  ///  Email login (no Firebase Auth needed)
+  Future<void> loginWithEmail(BuildContext context, String email) async {
     print(' Attempting email login for: $email');
     emit(state.copyWith(isLoading: true, message: ''));
 
@@ -137,7 +226,7 @@ class AuthCubit extends Cubit<AuthState> {
           .limit(1)
           .get();
 
-      print('📊 Query result: ${querySnapshot.docs.length} documents found');
+      print(' Query result: ${querySnapshot.docs.length} documents found');
 
       if (querySnapshot.docs.isNotEmpty) {
         final doc = querySnapshot.docs.first;
@@ -167,47 +256,54 @@ class AuthCubit extends Cubit<AuthState> {
           userType: userType,
         );
 
-        print('✅ UserModel created: ${userModel.email}');
+        print(' UserModel created: ${userModel.email}');
 
         // Save to SharedPreferences
         await saveLoginData(email, userType, uid);
-        print('✅ Saved to SharedPreferences');
+        print('Saved to SharedPreferences');
 
-        // Update state with new user data
+
         emit(state.copyWith(
           currentUserModel: userModel,
           firebaseUser: null, // We're not using Firebase Auth
           isLoggedIn: true,
           isLoading: false,
-          message: '✅ Login Successful',
+          message: ' Login Successful',
           userEmail: email,
           userType: userType,
         ));
+        if (state.isLoggedIn &&
+            state.currentUserModel != null && context.mounted  ) {
+          await checkFirstLoginAndShowWelcome(
+            context,
+            state.currentUserModel!.uid,
 
-        print('✅ State updated - currentUserModel: ${state.currentUserModel?.email}');
-        print('✅ Login successful: $email (UID: $uid)');
+          );
+        }
+        print('State updated - currentUserModel: ${state.currentUserModel?.email}');
+        print(' Login successful: $email (UID: $uid)');
       } else {
-        print('❌ No user found with email: $email');
+        print(' No user found with email: $email');
         emit(state.copyWith(
           isLoading: false,
-          message: '❌ No account found with this email',
+          message: ' No account found with this email',
           currentUserModel: null,
           isLoggedIn: false,
         ));
       }
     } catch (e) {
-      print('❌ Error during login: $e');
+      print(' Error during login: $e');
       print('Stack trace: $e');
       emit(state.copyWith(
         isLoading: false,
-        message: '❌ Login failed: $e',
+        message: 'Login failed: $e',
         currentUserModel: null,
         isLoggedIn: false,
       ));
     }
   }
 
-  /// ✅ Save login data to SharedPreferences
+  ///  Save login data to SharedPreferences
   Future<void> saveLoginData(String email, String userType, String uid) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -217,17 +313,17 @@ class AuthCubit extends Cubit<AuthState> {
       await prefs.setString('uid', uid);
       await prefs.setString('userType', userType);
 
-      print('✅ Login data saved to SharedPreferences');
+      print(' Login data saved to SharedPreferences');
       print('   email: $email');
       print('   uid: $uid');
       print('   userType: $userType');
     } catch (e) {
-      print('❌ Error saving login data: $e');
+      print(' Error saving login data: $e');
       throw Exception('Failed to save login data: $e');
     }
   }
 
-  /// ✅ Clear login data from SharedPreferences
+  ///  Clear login data from SharedPreferences
   Future<void> clearLoginData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -235,13 +331,13 @@ class AuthCubit extends Cubit<AuthState> {
       await prefs.remove('email');
       await prefs.remove('uid');
       await prefs.remove('userType');
-      print('✅ Login data cleared from SharedPreferences');
+      print(' Login data cleared from SharedPreferences');
     } catch (e) {
-      print('❌ Error clearing login data: $e');
+      print(' Error clearing login data: $e');
     }
   }
 
-  /// ✅ Sign out
+  ///  Sign out
   Future<void> signOut() async {
     print('Signing out user...');
     emit(state.copyWith(isLoading: true));
@@ -253,7 +349,7 @@ class AuthCubit extends Cubit<AuthState> {
 
 
 
-      print('✅ Emitting logout state...');
+      print(' Emitting logout state...');
       emit(const AuthState(
         firebaseUser: null,
         currentUserModel: null,
@@ -264,9 +360,9 @@ class AuthCubit extends Cubit<AuthState> {
         isLoggedIn: false,
       ));
 
-      print('✅ Successfully logged out');
+      print(' Successfully logged out');
     } catch (e) {
-      print('❌ Error during logout: $e');
+      print(' Error during logout: $e');
       emit(state.copyWith(
         isLoading: false,
         message: 'Error during logout: $e',
@@ -320,7 +416,7 @@ Future<void> onRegistration({
           .limit(1)
           .get();
 
-      if (querySnapshot.docs.isNotEmpty) {
+      if (querySnapshot.docs.isNotEmpty && context.mounted ) {
         emit(state.copyWith(isLoading: false));
        AppSnackbar.showError(context, "User already exists");
       } else {
@@ -366,7 +462,7 @@ Future<void> onRegistration({
           .collection(FirebaseCollectionName.USERS)
           .get();
 
-      print('📊 Got ${snapshot.docs.length} documents');
+      print(' Got ${snapshot.docs.length} documents');
 
       final users = snapshot.docs.map((doc) {
         try {
@@ -378,9 +474,9 @@ Future<void> onRegistration({
       }).whereType<UserModel>().toList();
 
       emit(state.copyWith(allUsers: users));
-      print("✅ Fetched ${users.length} users successfully.");
+      print(" Fetched ${users.length} users successfully.");
     } catch (e) {
-      print("❌ Error fetching users: $e");
+      print(" Error fetching users: $e");
       emit(state.copyWith(
         allUsers: [],
         message: "Error fetching users: $e",
@@ -399,13 +495,13 @@ Future<void> onRegistration({
           .toList();
 
       emit(state.copyWith(adminUsers: admins,isLoading: false));
-      print("✅ Found ${admins.length} admin users.");
+      print(" Found ${admins.length} admin users.");
 
       for (var admin in admins) {
         print('   - ${admin.email} (${admin.uid})');
       }
     } catch (e) {
-      print("❌ Error filtering admin users: $e");
+      print(" Error filtering admin users: $e");
       emit(state.copyWith(
         adminUsers: [],
         message: "Error filtering admins: $e",
@@ -429,7 +525,7 @@ Future<void> onRegistration({
         print("No user found for UID: $uid");
       }
     } catch (e) {
-      print("❌ Error fetching user: $e");
+      print(" Error fetching user: $e");
     }
   }
   Future<void> updateUserProfileInfo({
