@@ -1,47 +1,32 @@
+
 import 'package:equatable/equatable.dart';
-import 'package:studioh_ceramic_cafe_client/model/message.dart';
+import 'package:studioh_ceramic_cafe_client/model/chat_room.dart';
 
-class ChatState {
-  final List<Message> messages;
-  final bool isLoading;
-  final String error;
-  final Map<String, int> unseenCounts; // chatRoomId -> count
-
-  const ChatState({
-    this.messages = const [],
-    this.isLoading = false,
-    this.error = '',
-    this.unseenCounts = const {},
-  });
-
-  ChatState copyWith({
-    List<Message>? messages,
-    bool? isLoading,
-    String? error,
-    Map<String, int>? unseenCounts,
-  }) {
-    return ChatState(
-      messages: messages ?? this.messages,
-      isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
-      unseenCounts: unseenCounts ?? this.unseenCounts,
-    );
-  }
-
+abstract class ChatState extends Equatable {
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is ChatState &&
-          runtimeType == other.runtimeType &&
-          messages == other.messages &&
-          isLoading == other.isLoading &&
-          error == other.error &&
-          unseenCounts == other.unseenCounts;
-
-  @override
-  int get hashCode =>
-      messages.hashCode ^
-      isLoading.hashCode ^
-      error.hashCode ^
-      unseenCounts.hashCode;
+  List<Object?> get props => [];
 }
+
+class ChatInitial extends ChatState {}
+
+class ChatLoading extends ChatState {}
+
+class ChatLoaded extends ChatState {
+  final List<ChatRoom> chatRooms;
+  final Map<String, int> unseenCounts;
+
+  ChatLoaded({required this.chatRooms, this.unseenCounts = const {}});
+
+  @override
+  List<Object?> get props => [chatRooms, unseenCounts];
+}
+
+class ChatError extends ChatState {
+  final String message;
+
+  ChatError(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+

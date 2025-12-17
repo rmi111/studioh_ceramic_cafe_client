@@ -1,62 +1,31 @@
-import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:studioh_ceramic_cafe_client/cubit/auth_cubit/auth_cubit.dart';
-import 'package:studioh_ceramic_cafe_client/cubit/chat_cubit/chat_state.dart';
-import 'package:studioh_ceramic_cafe_client/model/message.dart';
+import 'package:studioh_ceramic_cafe_client/cubit/order_cubit/order_cubit.dart';
+import 'package:studioh_ceramic_cafe_client/model/chat_room.dart';
+import 'package:studioh_ceramic_cafe_client/model/user.dart';
 import 'package:studioh_ceramic_cafe_client/utils/constant/firebase_collection_name.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../model/message.dart';
+import 'chat_state.dart';
+
 class ChatCubit extends Cubit<ChatState> {
-  final AuthCubit authCubit;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final String currentUserId;
 
-  ChatCubit({required this.authCubit})
-      : super(const ChatState(
-          messages: [],
-          isLoading: false,
-          error: '',
-          unseenCounts: {},
-        ));
+  final OrderCubit orderCubit;
 
-  /// Generate chat room ID based on user IDs and optional product ID
-  String _generateChatRoomId({
-    required String userId,
-    required String otherUserId,
-    String? productId,
-    String chatType = 'general',
-  }) {
-    List<String> ids = [userId, otherUserId];
-    ids.sort();
-    String baseId = ids.join('_');
+  ChatCubit({required this.currentUserId, required this.orderCubit})
+    : super(ChatInitial());
 
-    if (chatType == 'item_query' && productId != null) {
-      return '${baseId}_$productId';
-    }
-    return baseId;
-  }
-
-  /// Send a message
   Future<void> sendMessage({
     required String message,
     required String receiverId,
-    String chatType = 'general',
+    String chatType = "general",
     String? productId,
   }) async {
-    emit(state.copyWith(isLoading: true, error: ''));
-
     try {
-      final currentUser = authCubit.state.currentUserModel;
-      if (currentUser == null) {
-        throw Exception('No logged-in user');
-      }
-
-      final String currentUserId = currentUser.uid;
       final int date = Timestamp.now().millisecondsSinceEpoch;
 
-      // Create message object
-      final Message newMessage = Message(
+      Message newMessage = Message(
         senderID: currentUserId,
         receiverID: receiverId,
         message: message,
@@ -64,19 +33,21 @@ class ChatCubit extends Cubit<ChatState> {
         seen: false,
       );
 
-      // Generate chat room ID
-      final String chatRoomId = _generateChatRoomId(
-        userId: currentUserId,
-        otherUserId: receiverId,
-        productId: productId,
+      String chatRoomId = _generateChatRoomId(
+        currentUserId,
+        receiverId,
         chatType: chatType,
+        productId: productId,
       );
 
-      // Ensure chat doc exists with type info
+      // Ensure chat doc exists
       await _firestore.collection('chats').doc(chatRoomId).set({
-        'chat_type': chatType,
-        if (chatType == 'item_query') 'item_ref': productId,
-        'lastMessageTime': date,
+        "chat_type": chatType,
+        "participants": [currentUserId, receiverId],
+        "last_message": message,
+        "last_message_time": date,
+        if (chatType == "item_query" && productId != null)
+          "item_ref": productId,
       }, SetOptions(merge: true));
 
       // Add message to subcollection
@@ -86,118 +57,218 @@ class ChatCubit extends Cubit<ChatState> {
           .collection('messages')
           .add(newMessage.toMap());
 
-      print(' Message sent to $chatRoomId: $message');
-      emit(state.copyWith(isLoading: false));
+      print("✅ Message sent to $chatRoomId: $message");
     } catch (e) {
-      print(' Error sending message: $e');
-      emit(state.copyWith(
-        isLoading: false,
-        error: 'Failed to send message: $e',
-      ));
+      print('❌ Error sending message: $e');
+      emit(ChatError('Failed to send message: $e'));
     }
   }
 
-  /// Get messages stream for a chat
-  Stream<List<Message>> getMessagesStream({
-    required String userId,
-    required String otherUserID,
-    String chatType = 'general',
-    String? productId,
-  }) {
-    final String chatRoomId = _generateChatRoomId(
-      userId: userId,
-      otherUserId: otherUserID,
-      productId: productId,
-      chatType: chatType,
-    );
+  void loadChatList() {
+    emit(ChatLoading());
 
-    print('Chat room ID: $chatRoomId');
+    try {
+      _firestore.collection(FirebaseCollectionName.CHATS).snapshots().listen((
+        chatSnapshot,
+      ) async {
+        List<ChatRoom> chatRooms = [];
 
-    return _firestore
-        .collection('chats')
-        .doc(chatRoomId.trim())
-        .collection('messages')
-        .orderBy('date', descending: false)
-        .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => Message.fromMap(doc.data()))
-          .toList();
-    });
+        for (var chatDoc in chatSnapshot.docs) {
+          final data = chatDoc.data();
+          final chatRoomId = chatDoc.id;
+
+          if (!chatRoomId.contains(currentUserId)) continue;
+
+          final chatType = data['chat_type'] ?? 'general';
+
+          String otherUserId = '';
+
+          // Parse chatRoomId format: "userId1_userId2" or "userId1_userId2_productId"
+          final parts = chatRoomId.split('_');
+          if (parts.length >= 2) {
+            if (parts[0] == currentUserId) {
+              otherUserId = parts[1];
+            } else if (parts[1] == currentUserId) {
+              otherUserId = parts[0];
+            }
+          }
+
+          if (otherUserId.isEmpty) continue;
+
+          // Get other user data from Firestore
+          final userDoc = await _firestore
+              .collection(FirebaseCollectionName.USERS)
+              .doc(otherUserId)
+              .get();
+          final userData = userDoc.data() ?? {};
+          UserModel otherUser = UserModel.fromMap(userData, otherUserId);
+          print("Other User: ${otherUser.name}");
+          final messagesSnapshot = await _firestore
+              .collection(FirebaseCollectionName.CHATS)
+              .doc(chatRoomId)
+              .collection('messages')
+              .limit(1)
+              .get();
+
+          // Skip chats with no messages
+          if (messagesSnapshot.docs.isEmpty) continue;
+
+          // Get unseen count for this chat
+          final unseenCount = await _getUnseenCountForChat(chatRoomId);
+
+          // Get product data if item_query
+          String? productName;
+          String? productImage;
+          String? productRef;
+          String? ownerName;
+          String? ownerEmail;
+          if (chatType == 'item_query') {
+            productRef = data['item_ref'];
+            if (productRef != null) {
+              final foundModel = await orderCubit.getOrderByRef(productRef);
+              print("Order Found ");
+              if (foundModel != null) {
+                productName = foundModel.description;
+                productImage = foundModel.imgUrl.isNotEmpty
+                    ? foundModel.imgUrl[0]
+                    : "Not found";
+                productRef = foundModel.refNumber;
+                ownerName = foundModel.users[0].name;
+                ownerEmail = foundModel.users[0].email;
+                print(
+                  "Product Name: $productName   Owner Name: $ownerName Owner Email: $ownerEmail",
+                );
+              }
+            }
+          }
+
+          chatRooms.add(
+            ChatRoom(
+              chatRoomId: chatRoomId,
+              otherUserId: otherUserId,
+              otherUserName: otherUser.name,
+              otherUserImage: otherUser.imageUrl,
+              chatType: chatType,
+              productId: productRef,
+              productName: productName,
+              productImage: productImage,
+              ownerEmail: ownerEmail,
+              ownerName: ownerName,
+              lastMessage: data['last_message'],
+              lastMessageTime: data['last_message_time'],
+              unseenCount: unseenCount,
+            ),
+          );
+            print(
+                  "Product Name: $productName   Owner Name: $ownerName Owner Email: $ownerEmail    Added to chatRooms",
+                );
+        }
+
+        // Sort by last message time
+        chatRooms.sort((a, b) {
+          final aTime = a.lastMessageTime ?? 0;
+          final bTime = b.lastMessageTime ?? 0;
+          return bTime.compareTo(aTime);
+        });
+        emit(ChatLoaded(chatRooms: chatRooms));
+      });
+    } catch (e) {
+      print('❌ Error loading chats: $e');
+      emit(ChatError('Failed to load chats: $e'));
+    }
   }
 
-  /// Mark messages as seen
-  Future<void> markMessagesAsSeen({
-    required String userId,
-    required String otherUserID,
-    String chatType = 'general',
-    String? productId,
-  }) async {
+  // ==================== MARK MESSAGES AS SEEN ====================
+  Future<void> markMessagesAsSeen(String chatRoomId) async {
     try {
-      final String chatRoomId = _generateChatRoomId(
-        userId: userId,
-        otherUserId: otherUserID,
-        productId: productId,
-        chatType: chatType,
-      );
-
       final messages = await _firestore
-          .collection('chats')
+          .collection(FirebaseCollectionName.CHATS)
           .doc(chatRoomId)
           .collection('messages')
-          .where('receiverID', isEqualTo: userId)
+          .where('receiverID', isEqualTo: currentUserId)
           .where('seen', isEqualTo: false)
           .get();
 
       for (final doc in messages.docs) {
         await doc.reference.update({'seen': true});
       }
-
-      print(' Messages marked as seen in $chatRoomId');
     } catch (e) {
-      print(' Error marking messages as seen: $e');
+      print('❌ Error marking messages as seen: $e');
     }
   }
 
-  /// Get unseen message count for a specific chat
-  Stream<int> getUnseenMessageCountForChat(String chatRoomId) {
-    final currentUser = authCubit.state.currentUserModel;
-    if (currentUser == null) return Stream.value(0);
-
+  // ==================== GET TOTAL UNSEEN MESSAGE COUNT ====================
+  Stream<int> getTotalUnseenMessageCount() {
     return _firestore
-        .collection('chats')
-        .doc(chatRoomId)
-        .collection('messages')
-        .where('receiverID', isEqualTo: currentUser.uid)
+        .collectionGroup('messages')
+        .where('receiverID', isEqualTo: currentUserId)
         .where('seen', isEqualTo: false)
         .snapshots()
         .map((snapshot) => snapshot.docs.length);
   }
 
-  /// Get all chats for admin
-  Stream<QuerySnapshot> getAllChatsForAdmin() {
-    return _firestore.collection('chats').snapshots();
+  // ==================== HELPER METHODS ====================
+  String _generateChatRoomId(
+    String userId1,
+    String userId2, {
+    String chatType = "general",
+    String? productId,
+  }) {
+    List<String> ids = [userId1, userId2];
+    ids.sort();
+    String chatRoomId = ids.join("_");
+
+    if (chatType == "item_query" && productId != null) {
+      chatRoomId = "${ids.join("_")}_$productId";
+    }
+
+    return chatRoomId;
   }
 
-  /// Get map of chatRoomId -> unseen count (for all chats)
-  Stream<Map<String, int>> getAllUnseenCounts() {
-    final currentUser = authCubit.state.currentUserModel;
-    if (currentUser == null) return Stream.value({});
+  Future<int> _getUnseenCountForChat(String chatRoomId) async {
+    final snapshot = await _firestore
+        .collection(FirebaseCollectionName.CHATS)
+        .doc(chatRoomId)
+        .collection('messages')
+        .where('receiverID', isEqualTo: currentUserId)
+        .where('seen', isEqualTo: false)
+        .get();
+
+    return snapshot.docs.length;
+  }
+
+  // ==================== GET MESSAGES STREAM ====================
+  Stream<QuerySnapshot> getMessagesStream({
+    required String otherUserId,
+    String chatType = "general",
+    String? productId,
+  }) {
+    String chatRoomId = _generateChatRoomId(
+      currentUserId,
+      otherUserId,
+      chatType: chatType,
+      productId: productId,
+    );
 
     return _firestore
-        .collectionGroup('messages')
-        .where('receiverID', isEqualTo: currentUser.uid)
-        .where('seen', isEqualTo: false)
-        .snapshots()
-        .map((snapshot) {
-      final Map<String, int> unseenCounts = {};
+        .collection(FirebaseCollectionName.CHATS)
+        .doc(chatRoomId)
+        .collection('messages')
+        .orderBy('date', descending: false)
+        .snapshots();
+  }
 
-      for (var doc in snapshot.docs) {
-        final chatPath = doc.reference.parent.parent!.id;
-        unseenCounts.update(chatPath, (val) => val + 1, ifAbsent: () => 1);
-      }
-
-      return unseenCounts;
-    });
+  // ==================== GET CHAT ROOM ID ====================
+  String getChatRoomId({
+    required String otherUserId,
+    String chatType = "general",
+    String? productId,
+  }) {
+    return _generateChatRoomId(
+      currentUserId,
+      otherUserId,
+      chatType: chatType,
+      productId: productId,
+    );
   }
 }

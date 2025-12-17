@@ -16,7 +16,7 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final TextEditingController emailController = TextEditingController(
-      
+
     );
 
     return BlocListener<AuthCubit, AuthState>(

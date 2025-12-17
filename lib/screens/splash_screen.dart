@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
+import 'package:shimmer/main.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/auth_cubit/auth_cubit.dart';
+import 'package:studioh_ceramic_cafe_client/screens/auth/login_screen.dart';
+import 'package:studioh_ceramic_cafe_client/screens/customer_home.dart';
 
 import '../utils/route/app_routes.dart';
 class SplashScreen extends StatefulWidget {
@@ -25,21 +28,13 @@ class _SplashScreenState extends State<SplashScreen> {
       // Get AuthCubit
       final authCubit = context.read<AuthCubit>();
 
-      // ✅ Check login status from SharedPreferences (fast)
       print('🔍 Checking login status...');
       await authCubit.checkLoginStatus();
-      print('✅ Login status checked');
-
-      // ✅ Wait for messaging setup to complete (in background)
-      print('⏳ Waiting for initialization to complete...');
+      print(' Login status checked');
+    print(' Waiting for initialization to complete...');
       int attempts = 0;
-      // while (!_initializationComplete && attempts < 30) {
-      //   await Future.delayed(const Duration(milliseconds: 100));
-      //   attempts++;
-      // }
-      print('✅ Initialization complete (attempts: $attempts)');
+         print(' Initialization complete (attempts: $attempts)');
 
-      // ✅ Minimum splash screen duration for UX
       await Future.delayed(const Duration(seconds: 1));
 
       if (!mounted) return;
@@ -54,18 +49,18 @@ class _SplashScreenState extends State<SplashScreen> {
       if (isLoggedIn && currentUser != null) {
         print('✅ User is logged in. Going to home...');
         if (mounted) {
-          Navigator.pushReplacementNamed(context, AppRoutes.home);
+           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>CustomerHomePage()));
         }
       } else {
         print('❌ User is not logged in. Going to login...');
         if (mounted) {
-          Navigator.pushReplacementNamed(context, AppRoutes.login);
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>LoginScreen()));
         }
       }
     } catch (e) {
       print('❌ Error checking login status: $e');
       if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.login);
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>LoginScreen()));
       }
     }
   }

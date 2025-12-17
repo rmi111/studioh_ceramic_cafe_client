@@ -487,11 +487,11 @@ print("Fetched Orders: ${fetchedOrders.map((o) => o.refNumber).toList()}");
   }
 
   /// Get order by reference number
-  OrderModel? getOrderByRef(String refNumber) {
+  Future<OrderModel?> getOrderByRef(String refNumber) {
     try {
-      return state.orders.firstWhere((order) => order.refNumber == refNumber);
+      return Future.value(state.orders.firstWhere((order) => order.refNumber == refNumber));
     } catch (e) {
-      return null;
+      return Future.value(null);
     }
   }
 

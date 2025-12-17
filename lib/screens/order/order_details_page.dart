@@ -1,16 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:studioh_ceramic_cafe_client/screens/order/add_order.dart';
+import 'package:studioh_ceramic_cafe_client/screens/user/admin_list.dart';
 import 'package:studioh_ceramic_cafe_client/utils/widget/snacke_bar.dart';
-
 import '../../model/orders.dart';
-import '../../utils/constant/app_colors.dart';
 import '../../utils/constant/constants.dart';
 import '../../utils/constant/date_formatter.dart';
 import '../../utils/constant/firebase_collection_name.dart';
 import '../../utils/widget/custom_text.dart';
-import '../../utils/widget/image_slider.dart';
-
 
 class OrderDetailPage extends StatefulWidget {
   final OrderModel order;
@@ -31,7 +27,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     super.initState();
   }
 
-  Future<void> updateStatus(BuildContext context, String status ) async {
+  Future<void> updateStatus(BuildContext context, String status) async {
     print("Clicked");
     await FirebaseFirestore.instance
         .collection(FirebaseCollectionName.ORDERS)
@@ -50,12 +46,18 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       appBar: AppBar(
         centerTitle: true,
         backgroundColor: Colors.white,
-        leading: IconButton(onPressed: ()=>Navigator.pop(context), icon: Icon(Icons.arrow_back_ios)),
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: Icon(Icons.arrow_back_ios),
+        ),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            CustomText(text:  'Order Details', fontWeight: FontWeight.bold,fontSize: 20,),
-
+            CustomText(
+              text: 'Order Details',
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
           ],
         ),
       ),
@@ -73,7 +75,18 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 ),
                 Spacer(),
 
-
+                IconButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => 
+                        ChatListPage(order: widget.order),
+                      ),
+                    );
+                  },
+                  icon: Icon(Icons.message, color: Colors.amber),
+                ),
               ],
             ),
 
@@ -81,29 +94,29 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               alignment: Alignment.center,
               child:
                   widget.order.imgUrl.isNotEmpty &&
-                          widget
-                              .order
-                              .imgUrl[widget.order.imgUrl.length - 1]
-                              .isNotEmpty
-                      ? OrderImageSlider(
-                        imgUrls: widget.order.imgUrl,
-                        initialIndex: widget.order.imgUrl.length - 1,
-                      )
-                      : Container(
-                        margin: EdgeInsets.all(5),
-                        height: 150,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(5),
-                          color: Colors.grey[200],
-                          image: DecorationImage(
-                            image: AssetImage(
-                              'assets/images/no-image-icon-4.png',
-                            ),
-                            fit: BoxFit.cover,
+                      widget
+                          .order
+                          .imgUrl[widget.order.imgUrl.length - 1]
+                          .isNotEmpty
+                  ? OrderImageSlider(
+                      imgUrls: widget.order.imgUrl,
+                      initialIndex: widget.order.imgUrl.length - 1,
+                    )
+                  : Container(
+                      margin: EdgeInsets.all(5),
+                      height: 150,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(5),
+                        color: Colors.grey[200],
+                        image: DecorationImage(
+                          image: AssetImage(
+                            'assets/images/no-image-icon-4.png',
                           ),
+                          fit: BoxFit.cover,
                         ),
                       ),
+                    ),
             ),
             const SizedBox(height: 5),
             CustomText(text: 'Customer Name: ${widget.order.users[0].name}'),
@@ -112,7 +125,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             CustomText(text: 'Description: ${widget.order.description}'),
             CustomText(
               text:
-                  'Order Date: ${DateFormatter.formatDate(widget. order.orderDate)}',
+                  'Order Date: ${DateFormatter.formatDate(widget.order.orderDate)}',
             ),
             const SizedBox(height: 10),
             CustomText(
@@ -135,29 +148,26 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                           margin: const EdgeInsets.symmetric(vertical: 2),
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  isSelected
-                                      ? Colors.deepOrange
-                                      : Colors.grey[200],
-                              foregroundColor:
-                                  isSelected ? Colors.white : Colors.black,
+                              backgroundColor: isSelected
+                                  ? Colors.deepOrange
+                                  : Colors.grey[200],
+                              foregroundColor: isSelected
+                                  ? Colors.white
+                                  : Colors.black,
                               elevation: isSelected ? 2 : 0,
                               padding: const EdgeInsets.symmetric(
                                 vertical: 8,
                               ), // smaller height
                               minimumSize: Size(0, 32), // min height
                             ),
-                            onPressed: () {
-
-                            },
+                            onPressed: () {},
                             child: Text(
                               potteryOrderStatus[status] ?? '',
                               //status[0].toUpperCase() + status.substring(1),
                               style: TextStyle(
-                                fontWeight:
-                                    isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                                 fontSize: 12, // smaller text
                               ),
                             ),
@@ -166,7 +176,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       })
                       .toList(),
             ),
-
           ],
         ),
       ),
@@ -174,6 +183,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 }
 
+// ignore: must_be_immutable
 class OrderImageSlider extends StatefulWidget {
   final List<String> imgUrls;
   int initialIndex;
@@ -215,19 +225,15 @@ class OrderImageSliderState extends State<OrderImageSlider> {
               itemBuilder: (context, index) {
                 print("Image Url: ${widget.imgUrls[index]}");
                 return Image.network(
-                    widget.imgUrls[_currentIndex],
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: 200,
-                    errorBuilder:
-                        (context, error, stackTrace) =>
-                            Center(child: Icon(Icons.broken_image)),
-                    loadingBuilder:
-                        (context, child, progress) =>
-                            progress == null
-                                ? child
-                                : Center(child: CircularProgressIndicator()),
-
+                  widget.imgUrls[_currentIndex],
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: 200,
+                  errorBuilder: (context, error, stackTrace) =>
+                      Center(child: Icon(Icons.broken_image)),
+                  loadingBuilder: (context, child, progress) => progress == null
+                      ? child
+                      : Center(child: CircularProgressIndicator()),
                 );
               },
             ),

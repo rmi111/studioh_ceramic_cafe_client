@@ -1,7 +1,10 @@
 
+import 'dart:io';
+
 import 'package:bloc/bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -529,32 +532,86 @@ Future<void> onRegistration({
     }
   }
   Future<void> updateUserProfileInfo({
+    required BuildContext context,
     required String name,
     required String phone,
-    required BuildContext context,
+    File? imageFile,
   }) async {
     emit(state.copyWith(isLoading: true));
+
     try {
-      final uid = state.currentUserModel?.uid;
-      if (uid == null) {
-        throw Exception('No user is currently logged in.');
+      final currentUser = state.currentUserModel;
+      if (currentUser == null) {
+        emit(state.copyWith(isLoading: false));
+        AppSnackbar.showError(context, 'No user logged in');
+        return;
       }
 
-      print("Phone Number  ${phone}");
+      String? imageUrl = currentUser.imageUrl;
+
+      // Upload image to Firebase Storage if a new image is selected
+      if (imageFile != null) {
+        print('📤 Uploading profile image...');
+
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('profile_images')
+            .child('${currentUser.uid}.jpg');
+
+        final uploadTask = await storageRef.putFile(
+          imageFile,
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+
+        if (uploadTask.state == TaskState.success) {
+          imageUrl = await storageRef.getDownloadURL();
+          print('✅ Image uploaded successfully: $imageUrl');
+        } else {
+          throw Exception('Image upload failed');
+        }
+      }
+
+      // Update Firestore
+      print('💾 Updating Firestore...');
       await FirebaseFirestore.instance
           .collection(FirebaseCollectionName.USERS)
-          .doc(uid)
-          .update({'name': name, 'phoneNumber': phone});
+          .doc(currentUser.uid)
+          .update({
+        'name': name,
+        'phoneNumber': phone,
+        'imageUrl': imageUrl,
 
-      await fetchAndSetCurrentUser(uid);
-      emit(state.copyWith(isLoading: false));
-      Navigator.pop(context);
-      print("Profile updated successfully.");
-    } catch (e) {
-      emit(
-        state.copyWith(message: "Error updating profile: $e", isLoading: false),
+      });
+
+      // Create updated user model
+      final updatedUser = UserModel(
+        uid: currentUser.uid,
+        email: currentUser.email,
+        name: name,
+        phoneNumber: phone,
+        imageUrl: imageUrl,
+        userType: currentUser.userType,
       );
-      print("Error updating profile: $e");
+
+      // Update state
+      emit(state.copyWith(
+        currentUserModel: updatedUser,
+        isLoading: false,
+      ));
+
+      print('✅ Profile updated successfully!');
+      print('   Name: $name');
+      print('   Phone: $phone');
+      print('   Image: ${imageUrl ?? 'No image'}');
+
+    } on FirebaseException catch (e) {
+      emit(state.copyWith(isLoading: false));
+      print('❌ Firebase Error: ${e.code} - ${e.message}');
+      AppSnackbar.showError(context, 'Failed to update profile: ${e.message}');
+    } catch (e) {
+      emit(state.copyWith(isLoading: false));
+      print('❌ Error updating profile: $e');
+      AppSnackbar.showError(context, 'Failed to update profile: $e');
     }
   }
 }

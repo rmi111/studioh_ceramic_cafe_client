@@ -9,12 +9,13 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/auth_cubit/auth_cubit.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/chat_cubit/chat_cubit.dart';
 import 'package:studioh_ceramic_cafe_client/firebase_options.dart';
+import 'package:studioh_ceramic_cafe_client/screens/splash_screen.dart';
 import 'package:studioh_ceramic_cafe_client/utils/route/app_router.dart';
 import 'package:studioh_ceramic_cafe_client/utils/route/app_routes.dart';
 import 'cubit/order_cubit/order_cubit.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-FlutterLocalNotificationsPlugin();
+    FlutterLocalNotificationsPlugin();
 
 //  Flag to track initialization status
 bool _initializationComplete = false;
@@ -24,7 +25,8 @@ void main() async {
 
   //  Initialize Firebase immediately (required for app)
   try {
-    await Firebase.initializeApp(  options: DefaultFirebaseOptions.currentPlatform,
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
     );
     print(' Firebase initialized');
   } catch (e) {
@@ -103,8 +105,8 @@ Future<void> _setupMessaging() async {
 
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin
-    >()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
 
     // Setup message handlers
@@ -192,19 +194,16 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         // AuthCubit - created once
-        BlocProvider<AuthCubit>(
-          create: (_) => AuthCubit(),
-        ),
+        BlocProvider<AuthCubit>(create: (_) => AuthCubit()),
         // OrderCubit depends on AuthCubit
         BlocProvider<OrderCubit>(
-          create: (context) => OrderCubit(
-            authCubit: context.read<AuthCubit>(),
-          ),
+          create: (context) => OrderCubit(authCubit: context.read<AuthCubit>()),
         ),
         // ChatCubit depends on AuthCubit
         BlocProvider<ChatCubit>(
           create: (context) => ChatCubit(
-            authCubit: context.read<AuthCubit>(),
+            currentUserId: '',
+            orderCubit: context.read<OrderCubit>(),
           ),
         ),
       ],
@@ -216,146 +215,9 @@ class MyApp extends StatelessWidget {
         ),
         debugShowCheckedModeBanner: false,
         title: 'StudioH Ceramic Cafe',
-        initialRoute: AppRoutes.splash,
+        home: const SplashScreen(),
         onGenerateRoute: AppRouter.generateRoute,
         navigatorObservers: [routeObserver],
-      ),
-    );
-  }
-}
-
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    _checkLoginStatusAsync();
-  }
-
-  Future<void> _checkLoginStatusAsync() async {
-    print('=== Splash Screen: Checking Login Status ===');
-
-    try {
-      // Get AuthCubit
-      final authCubit = context.read<AuthCubit>();
-
-      //  Check login status from SharedPreferences (fast)
-      print(' Checking login status...');
-      await authCubit.checkLoginStatus();
-      print('Login status checked');
-
-      // Wait for messaging setup to complete (in background)
-      print(' Waiting for initialization to complete...');
-      int attempts = 0;
-      while (!_initializationComplete && attempts < 30) {
-        await Future.delayed(const Duration(milliseconds: 100));
-        attempts++;
-      }
-      print(' Initialization complete (attempts: $attempts)');
-
-      //  Minimum splash screen duration for UX
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (!mounted) return;
-
-      // Check login status
-      final isLoggedIn = authCubit.state.isLoggedIn;
-      final currentUser = authCubit.state.currentUserModel;
-
-      print('Login Status: $isLoggedIn');
-      print('Current User: ${currentUser?.email}');
-
-      if (isLoggedIn && currentUser != null) {
-        print(' User is logged in. Going to home...');
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, AppRoutes.home);
-        }
-      } else {
-        print(' User is not logged in. Going to login...');
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, AppRoutes.login);
-        }
-      }
-    } catch (e) {
-      print(' Error checking login status: $e');
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.login);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.white, Colors.white70],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Image.asset(
-                      'assets/images/Studioh_Logo.jpg',
-                      height: 250,
-                      width: 250,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Welcome to StudioH',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 40),
-                  Lottie.asset(
-                    'assets/images/Animation - 1749106532062.json',
-                    height: 150,
-                    width: 150,
-                    fit: BoxFit.contain,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 30,
-            left: 0,
-            right: 0,
-            child: Column(
-              children: const [
-                Text(
-                  'Powered by Studioh',
-                  style: TextStyle(
-                    color: Color.fromARGB(255, 92, 86, 86),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:studioh_ceramic_cafe_client/screens/chat/user_list.dart';
 import 'package:studioh_ceramic_cafe_client/screens/order/order_list_page.dart';
 import 'package:studioh_ceramic_cafe_client/screens/voucher/voucher_page.dart';
-import 'chat/chat_admin_list.dart';
+import 'package:studioh_ceramic_cafe_client/utils/constant/app_colors.dart';
+
 
 class CustomerHomePage extends StatefulWidget {
   const CustomerHomePage({super.key});
@@ -20,7 +23,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
 
     VoucherPage(),
     OrderListPage(),
-    ChatListPage(),
+    ChatListScreen(
+   
+    ),
   ];
 
   void _onNavTap(int index) {
@@ -49,7 +54,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         currentIndex: _selectedIndex,
         onTap: _onNavTap,
         items: _navItems,
-        selectedItemColor: Theme.of(context).colorScheme.primary,
+        selectedItemColor: AppColors.button,
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,

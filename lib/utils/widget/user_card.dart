@@ -1,52 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:lottie/lottie.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/auth_cubit/auth_cubit.dart';
-import 'package:studioh_ceramic_cafe_client/screens/chat/chat_view_page.dart';
 import '../../model/user.dart';
-import '../profile/admin_details.dart';
-
-class ChatListPage extends StatelessWidget {
-  const ChatListPage({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => AuthCubit()..fetchAdminUsers(),
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          automaticallyImplyLeading: false,
-          centerTitle: true,
-          //leading: IconButton(onPressed: , icon: Icon(Icons.arrow_back_ios)),
-          title: Text("Chats"),
-        ),
-        body: BlocBuilder<AuthCubit, AuthState>(
-          builder: (context, state) {
-            if (!state.isLoading) {
-              if (state.adminUsers.isEmpty) {
-                return const Center(child: Text("No Admins Found"));
-              }
-              return ListView.builder(
-                itemCount: state.adminUsers.length,
-                itemBuilder: (context, index) {
-                  final admin = state.adminUsers[index];
-
-                  return UserCard(user: admin);
-                },
-              );
-            }
-            return Center(  child: Lottie.asset(
-              'assets/images/Animation - 1749106532062.json',
-              width: 150,
-              height: 150,
-            ),);
-          },
-        ),
-      ),
-    );
-  }
-}
+import '../../screens/chat/chat_view_page.dart';
+import '../../screens/profile/admin_details.dart';
 
 class UserCard extends StatelessWidget {
   final UserModel user;
@@ -121,12 +78,24 @@ class UserCard extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => ChatViewPage(
-                         user:user,
-                            chatType: "general",
+                          builder: (context) => ChatDetailScreen(
+                            otherUserId: user.uid,
+                            otherUserName: user.name,
+                            otherUserImage: user.imageUrl,
+                            chatType:"general",
+                            chatRoomId:"${context.read<AuthCubit>().state.currentUserModel!.uid}-${user.uid}",
                           ),
                         ),
                       );
+                      // Navigator.push(
+                      //   context,
+                      //   MaterialPageRoute(
+                      //     builder: (context) => ChatViewPage(
+                      //       user:user,
+                      //       chatType: "item_query",
+                      //     ),
+                      //   ),
+                      // );
                     },
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,8 +188,7 @@ class UserCard extends StatelessWidget {
     switch (userType.toLowerCase()) {
       case 'admin':
         return Colors.red[700]!;
-      // case 'staff':
-      //   return Colors.grey[700]!;
+
       case 'customer':
         return Colors.orange[700]!;
       default:
