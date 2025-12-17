@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:studioh_ceramic_cafe_client/model/chat_room.dart';
 
 import '../../cubit/auth_cubit/auth_cubit.dart';
 import '../../cubit/chat_cubit/chat_cubit.dart';
@@ -12,30 +13,13 @@ import '../../cubit/order_cubit/order_cubit.dart';
 import '../../model/message.dart';
 import '../../utils/constant/app_colors.dart';
 class ChatDetailScreen extends StatefulWidget {
-  final String otherUserId;
-  final String otherUserName;
-  final String? otherUserImage;
-  final String chatType;
-  final String? productRef;
-  final String? productName;
-  final String? ownerName;
-  final String? ownerEmail;
-  final String? productImage;
-  final String chatRoomId;
 
-  const ChatDetailScreen({
-    Key? key,
-    required this.otherUserId,
-    required this.otherUserName,
-    this.otherUserImage,
-    required this.chatType,
-    this.productRef,
-    this.productName,
-    this.productImage,
-    required this.chatRoomId,
-    this.ownerName,
-    this.ownerEmail,
-  }) : super(key: key);
+ChatRoom chatRoom;
+
+   ChatDetailScreen({
+    super.key,
+   required this.chatRoom,
+  });
 
   @override
   State<ChatDetailScreen> createState() => _ChatDetailScreenState();
@@ -59,7 +43,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _chatCubit.markMessagesAsSeen(widget.chatRoomId);
+      _chatCubit.markMessagesAsSeen(widget.chatRoom.chatRoomId);
     });
   }
 
@@ -83,7 +67,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isItemQuery = widget.chatType == 'item_query';
+    final isItemQuery = widget.chatRoom.chatType == 'item_query';
 
     return BlocProvider.value(
       value: _chatCubit,
@@ -111,11 +95,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ),
                 child: CircleAvatar(
                   radius: 20,
-                  backgroundImage: widget.otherUserImage != null
-                      ? NetworkImage(widget.otherUserImage!)
+                  backgroundImage: widget.chatRoom.otherUserImage != null
+                      ? NetworkImage(widget.chatRoom.otherUserImage!)
                       : null,
                   backgroundColor: const Color(0xFFeeae4d).withOpacity(0.2),
-                  child: widget.otherUserImage == null
+                  child: widget.chatRoom.otherUserImage == null
                       ? Icon(
                           Icons.person,
                           size: 32,
@@ -130,7 +114,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.otherUserName,
+                       widget.chatRoom.otherUserName,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -154,13 +138,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         ),
         body: Column(
           children: [
-            if (isItemQuery && widget.productName != null) _buildProductCard(),
+            if (isItemQuery &&  widget.chatRoom.productName != null) _buildProductCard(),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: _chatCubit.getMessagesStream(
-                  otherUserId: widget.otherUserId,
-                  chatType: widget.chatType,
-                  productId: widget.productRef,
+                  otherUserId: widget.chatRoom.otherUserId,
+                  chatType: widget.chatRoom.chatType,
+                  productId:  widget.chatRoom.productId,
                 ),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
@@ -258,9 +242,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Widget _buildProductCard() {
-    print("Product Image: ${widget.productImage}");
-    print("Owner Name: ${widget.ownerName}");
-    print("Owner Email: ${widget.ownerEmail}");
+    // print("Product Image: ${ widget.chatRoom.productImage}");
+    // print("Owner Name: ${ widget.chatRoom.ownerName}");
+    // print("Owner Email: ${ widget.chatRoom.ownerEmail}");
     return Container(
       margin: const EdgeInsets.all(12),
       padding: const EdgeInsets.all(14),
@@ -284,11 +268,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         children: [
           Row(
             children: [
-              if (widget.productImage != null)
+              if (widget.chatRoom.productImage != null)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: Image.network(
-                    widget.productImage!,
+                    widget.chatRoom.productImage!,
                     width: 70,
                     height: 70,
                     fit: BoxFit.cover,
@@ -308,10 +292,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ),
               const SizedBox(width: 12),
               Expanded(
-                child: Row(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                   Row(
+                    children: [
+                     const Text(
                       'Ref No:',
                       style: TextStyle(
                         fontSize: 11,
@@ -320,23 +306,37 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         letterSpacing: 0.5,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    if (widget.productRef != null)
+                    if ( widget.chatRoom.productId != null)
                       Text(
-                        widget.productRef!,
+                         widget.chatRoom.productId!,
                         style: const TextStyle(
-                          fontSize: 15,
+                          fontSize: 20,
                           fontWeight: FontWeight.w700,
                           color: Colors.black87,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    if (widget.ownerName != null)
+                    ],
+                   ),
+                    if ( widget.chatRoom.ownerName != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
-                          'Seller: ${widget.ownerName!}',
+                          'Name: ${ widget.chatRoom.ownerName!}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),  if ( widget.chatRoom.ownerEmail != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          'Email: ${ widget.chatRoom.ownerEmail!}',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -443,9 +443,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     _chatCubit.sendMessage(
       message: message,
-      receiverId: widget.otherUserId,
-      chatType: widget.chatType,
-      productId: widget.productRef,
+      receiverId:  widget.chatRoom.otherUserId,
+      chatType:  widget.chatRoom.chatType,
+      productId:  widget.chatRoom.productId,
     );
 
     _messageController.clear();

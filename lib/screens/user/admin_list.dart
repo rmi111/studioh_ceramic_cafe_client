@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lottie/lottie.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/auth_cubit/auth_cubit.dart';
+import 'package:studioh_ceramic_cafe_client/model/chat_room.dart';
 import 'package:studioh_ceramic_cafe_client/model/orders.dart';
 import 'package:studioh_ceramic_cafe_client/screens/chat/chat_view_page.dart';
 import 'package:studioh_ceramic_cafe_client/utils/widget/custom_appbar.dart';
 import '../../model/user.dart';
 import '../profile/admin_details.dart';
+
 class ChatListPage extends StatelessWidget {
   final OrderModel? order;
   ChatListPage({Key? key, this.order}) : super(key: key);
@@ -31,7 +33,10 @@ class ChatListPage extends StatelessWidget {
                 itemCount: state.adminUsers.length,
                 itemBuilder: (context, index) {
                   final admin = state.adminUsers[index];
-                  return UserCard(order: order, user: admin); // ✅ no force unwrap
+                  return UserCard(
+                    order: order,
+                    user: admin,
+                  ); // ✅ no force unwrap
                 },
               );
             }
@@ -93,13 +98,17 @@ class UserCard extends StatelessWidget {
                     tag: 'user-avatar-${user.uid}',
                     child: CircleAvatar(
                       radius: 30,
-                      backgroundColor: _getUserTypeColor(user.userType).withOpacity(0.2),
+                      backgroundColor: _getUserTypeColor(
+                        user.userType,
+                      ).withOpacity(0.2),
                       backgroundImage: user.imageUrl != null
                           ? NetworkImage(user.imageUrl!)
                           : null,
                       child: user.imageUrl == null
                           ? Text(
-                              user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                              user.name.isNotEmpty
+                                  ? user.name[0].toUpperCase()
+                                  : 'U',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -120,7 +129,8 @@ class UserCard extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => ChatDetailScreen(
-                            otherUserId: user.uid,
+                            chatRoom: ChatRoom(
+                             otherUserId: user.uid,
                             otherUserName: user.name,
                             otherUserImage: user.imageUrl,
                             chatType: "item_query",
@@ -130,9 +140,10 @@ class UserCard extends StatelessWidget {
                                 ? order!.imgUrl[0]
                                 : null,
                             productName: order?.description,
-                            productRef: order?.refNumber,
+                            productId: order?.refNumber,
                             chatRoomId:
                                 '${user.uid}-${context.read<AuthCubit>().state.currentUserModel!.uid}',
+                            ),
                           ),
                         ),
                       );
@@ -153,7 +164,11 @@ class UserCard extends StatelessWidget {
                         SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.email_outlined, size: 14, color: Colors.grey[600]),
+                            Icon(
+                              Icons.email_outlined,
+                              size: 14,
+                              color: Colors.grey[600],
+                            ),
                             SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -172,11 +187,18 @@ class UserCard extends StatelessWidget {
                           SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.phone_outlined, size: 14, color: Colors.grey[600]),
+                              Icon(
+                                Icons.phone_outlined,
+                                size: 14,
+                                color: Colors.grey[600],
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 user.phoneNumber!,
-                                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                ),
                               ),
                             ],
                           ),

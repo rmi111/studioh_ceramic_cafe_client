@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/auth_cubit/auth_cubit.dart';
+import 'package:studioh_ceramic_cafe_client/model/chat_room.dart';
 import '../../model/user.dart';
 import '../../screens/chat/chat_view_page.dart';
 import '../../screens/profile/admin_details.dart';
@@ -79,11 +80,13 @@ class UserCard extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => ChatDetailScreen(
-                            otherUserId: user.uid,
-                            otherUserName: user.name,
-                            otherUserImage: user.imageUrl,
-                            chatType:"general",
-                            chatRoomId:"${context.read<AuthCubit>().state.currentUserModel!.uid}-${user.uid}",
+                           chatRoom: ChatRoom(
+                              chatRoomId: "${context.read<AuthCubit>().state.currentUserModel!.uid}-${user.uid}",
+                              otherUserId: user.uid,
+                              otherUserName: user.name,
+                              otherUserImage: user.imageUrl,
+                              chatType: 'general',
+                            ),
                           ),
                         ),
                       );

@@ -249,16 +249,7 @@ class _ChatListTile extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (context) => ChatDetailScreen(
-              otherUserId: chat.otherUserId,
-              otherUserName: chat.otherUserName,
-              otherUserImage: chat.otherUserImage,
-              chatType: chat.chatType,
-              productRef: chat.productId,
-              productName: chat.productName,
-              productImage: chat.productImage,
-              chatRoomId: chat.chatRoomId,
-              ownerEmail: chat.ownerEmail,
-              ownerName: chat.ownerName,
+              chatRoom: chat,
             ),
           ),
         );
@@ -391,7 +382,7 @@ class _ChatListTile extends StatelessWidget {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              chat.productName!,
+                              chat.productId!,
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Color(0xFFeeae4d),
