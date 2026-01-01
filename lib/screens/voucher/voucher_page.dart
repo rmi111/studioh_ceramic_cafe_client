@@ -37,37 +37,16 @@ class _VoucherPageState extends State<VoucherPage>
       create: (_) => VoucherCubit(),
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          automaticallyImplyLeading: false,
-          elevation: 0,
-          title: const Text(
-            'Vouchers',
-            style: TextStyle(
-              color: Colors.black87,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          centerTitle: true,
-
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.card_giftcard, color: Color(0xFFD4AF37)),
-              onPressed: () {
-                // Navigate to buy gift voucher
-              },
-            ),
-          ],
-        ),
         body: BlocBuilder<VoucherCubit, VoucherState>(
           builder: (context, state) {
             if (state.isLoading) {
-              return  Center(  child: Lottie.asset(
-                'assets/images/Animation - 1749106532062.json',
-                width: 150,
-                height: 150,
-              ),);
+              return Center(
+                child: Lottie.asset(
+                  'assets/images/Animation - 1749106532062.json',
+                  width: 150,
+                  height: 150,
+                ),
+              );
             }
 
             if (state.activeVouchers.isEmpty) {
@@ -76,8 +55,6 @@ class _VoucherPageState extends State<VoucherPage>
 
             return Column(
               children: [
-                //    _buildStatsCard(state),
-                //_buildTabBar(),
                 _buildVoucherList(state.allVouchers, 'Vouchers'),
               ],
             );

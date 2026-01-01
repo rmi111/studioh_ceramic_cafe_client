@@ -15,9 +15,11 @@ class AppDecorations {
 
 class AppPadding {
   static EdgeInsets get all16 => const EdgeInsets.all(16);
-  static EdgeInsets get horizontal20 => const EdgeInsets.symmetric(horizontal: 20);
+  static EdgeInsets get horizontal20 =>
+      const EdgeInsets.symmetric(horizontal: 20);
   static EdgeInsets get vertical10 => const EdgeInsets.symmetric(vertical: 10);
 }
+
 class SizeBoxUtils {
   static SizedBox height(double h) => SizedBox(height: h);
   static SizedBox width(double w) => SizedBox(width: w);

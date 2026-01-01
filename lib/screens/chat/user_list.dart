@@ -53,56 +53,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
       )..loadChatList(),
       child: Scaffold(
         backgroundColor: const Color(0xFFFAFAFA),
-        appBar: AppBar(
-          elevation: 0,
-          automaticallyImplyLeading: false,
-          backgroundColor: Colors.white,
-          title: const Text(
-            'Messages',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-          centerTitle: false,
-          actions: [
-            IconButton(
-              icon: Icon(Icons.person_add_alt, color: AppColors.button),
-              onPressed: () async {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ChatListPage()),
-                );
-
-                context.read<ChatCubit>().loadChatList();
-              },
-            ),
-
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFeeae4d).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Active',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFFeeae4d),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+        floatingActionButton: FloatingActionButton(
+          onPressed: () async {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ChatListPage()),
+            );
+          },
+          backgroundColor: AppColors.button,
+          child: const Icon(Icons.person_add_alt, color: Colors.white),
         ),
         body: BlocBuilder<ChatCubit, ChatState>(
           builder: (context, state) {
@@ -118,7 +77,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       height: 150,
                     ),
                     const SizedBox(height: 16),
-                    Text('Please Wait....'),
+                    const Text('Please Wait....'),
                   ],
                 ),
               );
@@ -181,10 +140,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                           color: const Color(0xFFeeae4d).withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.chat_bubble_outline,
                           size: 56,
-                          color: const Color(0xFFeeae4d),
+                          color: Color(0xFFeeae4d),
                         ),
                       ),
                       const SizedBox(height: 20),
