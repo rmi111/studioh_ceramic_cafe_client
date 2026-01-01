@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:studioh_ceramic_cafe_client/screens/profile/edit_profile.dart';
 import 'package:studioh_ceramic_cafe_client/screens/profile/profile_page.dart';
 import 'package:studioh_ceramic_cafe_client/screens/settings/settings_page.dart';
+import 'package:studioh_ceramic_cafe_client/screens/subscription/subscription_page.dart';
 import '../../screens/auth/login_screen.dart';
 import '../../screens/auth/register_screen.dart';
 import '../../screens/customer_home.dart';
@@ -25,6 +26,8 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const OwnProfileScreen());
       case AppRoutes.settings:
         return MaterialPageRoute(builder: (_) => const SettingsPage());
+      case AppRoutes.subscription:
+        return MaterialPageRoute(builder: (_) => const SubscriptionPage());
 
       default:
         return MaterialPageRoute(

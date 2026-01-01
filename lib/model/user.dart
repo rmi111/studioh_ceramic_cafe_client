@@ -5,6 +5,7 @@ class UserModel {
   final String name;
   final String? phoneNumber;
   final String userType;
+  final bool isSubscriber;
 
   UserModel({
     required this.uid,
@@ -13,6 +14,7 @@ class UserModel {
     required this.name,
     this.phoneNumber,
     required this.userType,
+    this.isSubscriber = false,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> data, String uid) {
@@ -23,6 +25,7 @@ class UserModel {
       name: data['name'] ?? '',
       phoneNumber: data['phoneNumber'],
       userType: data['userType'] ?? 'customer',
+      isSubscriber: data['isSubscriber'] ?? false,
     );
   }
 }

@@ -101,7 +101,7 @@ class OwnProfileScreen extends StatelessWidget {
                       child: Column(
                         children: [
                   
-                          _PremiumCard(),
+                          _PremiumCard(user: currentUser),
                           const SizedBox(height: 14),
                           _LogoutButton(),
                         ],
@@ -352,10 +352,14 @@ class _ProfileOption extends StatelessWidget {
 }
 
 class _PremiumCard extends StatelessWidget {
-  const _PremiumCard({Key? key}) : super(key: key);
+  final UserModel user;
+  
+  const _PremiumCard({Key? key, required this.user}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final isSubscriber = user.isSubscriber;
+    
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(15),
@@ -364,11 +368,13 @@ class _PremiumCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Colors.purple[300]!, Colors.purple[600]!],
+          colors: isSubscriber 
+              ? [Colors.purple[300]!, Colors.purple[600]!]
+              : [Colors.grey[400]!, Colors.grey[600]!],
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.purple.withOpacity(0.3),
+            color: (isSubscriber ? Colors.purple : Colors.grey).withOpacity(0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -380,9 +386,9 @@ class _PremiumCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Premium Member',
-                style: TextStyle(
+              Text(
+                isSubscriber ? 'Premium Member' : 'Become Premium',
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -398,9 +404,9 @@ class _PremiumCard extends StatelessWidget {
                   color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
-                  'Active',
-                  style: TextStyle(
+                child: Text(
+                  isSubscriber ? 'Active' : 'Not Subscribed',
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -410,17 +416,18 @@ class _PremiumCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Unlock exclusive features and benefits',
-            style: TextStyle(fontSize: 14, color: Colors.white70, height: 1.5),
+          Text(
+            isSubscriber 
+                ? 'Thank you for being a premium member!' 
+                : 'Unlock exclusive features and benefits',
+            style: const TextStyle(fontSize: 14, color: Colors.white70, height: 1.5),
           ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                // TODO: Implement paywall
-                // RevenueCatUI.presentPaywall(displayCloseButton: true);
+                Navigator.pushNamed(context, AppRoutes.subscription);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
@@ -430,9 +437,9 @@ class _PremiumCard extends StatelessWidget {
                 ),
               ),
               child: Text(
-                'Manage Subscription',
+                isSubscriber ? 'Manage Subscription' : 'Subscribe Now',
                 style: TextStyle(
-                  color: Colors.purple[600],
+                  color: isSubscriber ? Colors.purple[600] : Colors.grey[700],
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
