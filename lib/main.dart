@@ -166,15 +166,18 @@ Future<void> _setupMessaging() async {
 }
 
 Future<void> initializeRevenueCat() async {
+  // Import the RevenueCat service
+  // Note: Update API keys in lib/services/revenuecat_service.dart
   String apiKey;
   if (Platform.isIOS) {
-    apiKey = 'test_olLJTVqBLmwOOgeZvxFGElZJCNe';
+    apiKey = 'appl_fTbRCxqjIfcJrTJKlJeUlViBxLU';
   } else if (Platform.isAndroid) {
-    apiKey = 'test_olLJTVqBLmwOOgeZvxFGElZJCNe';
+    apiKey = 'goog_YOUR_ANDROID_KEY_HERE';
   } else {
     throw UnsupportedError('Platform not supported');
   }
 
+  await Purchases.setLogLevel(LogLevel.debug);
   await Purchases.configure(PurchasesConfiguration(apiKey));
 }
 
