@@ -33,6 +33,14 @@ void main() async {
     print(' Firebase initialization error: $e');
   }
 
+  // Initialize RevenueCat BEFORE runApp to prevent crashes
+  try {
+    await initializeRevenueCat();
+    print(' RevenueCat initialized');
+  } catch (e) {
+    print(' RevenueCat initialization failed: $e');
+  }
+
   runApp(const MyApp());
 
   //  Setup messaging in background (doesn't block UI)
@@ -63,13 +71,7 @@ Future<void> _setupMessaging() async {
     await FirebaseMessaging.instance.subscribeToTopic('allUsers');
     print(' Subscribed to topic');
 
-    // Initialize RevenueCat in background
-    try {
-      await initializeRevenueCat();
-      print('RevenueCat initialized');
-    } catch (e) {
-      print(' RevenueCat initialization failed: $e');
-    }
+    // RevenueCat is now initialized in main() before runApp()
 
     //  Setup local notifications
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');

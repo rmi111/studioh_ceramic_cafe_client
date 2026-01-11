@@ -15,18 +15,24 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController emailController = TextEditingController(
-
-    );
+    final TextEditingController emailController = TextEditingController();
 
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
-        if (state.message.contains('❌')) {
-          AppSnackbar.show(context, state.message);
+        // Show error messages (check for common error indicators)
+        if (state.message.isNotEmpty &&
+            !state.isLoggedIn &&
+            !state.isLoading &&
+            (state.message.contains('❌') ||
+                state.message.contains('No account') ||
+                state.message.contains('failed') ||
+                state.message.contains('Error'))) {
+          AppSnackbar.showError(context, state.message);
         }
-        if (state.isLoggedIn) {
-          AppSnackbar.show(context, state.message);
-          Navigator.pushNamed(context, AppRoutes.home);
+        // Show success and navigate
+        if (state.isLoggedIn && state.currentUserModel != null) {
+          AppSnackbar.show(context, 'Login Successful');
+          Navigator.pushReplacementNamed(context, AppRoutes.home);
         }
       },
       child: Scaffold(
@@ -89,9 +95,10 @@ class LoginScreen extends StatelessWidget {
                                   return;
                                 }
 
-                                context.read<AuthCubit>().loginWithEmail(context, email);
-
-
+                                context.read<AuthCubit>().loginWithEmail(
+                                  context,
+                                  email,
+                                );
                               },
                       );
                     },
