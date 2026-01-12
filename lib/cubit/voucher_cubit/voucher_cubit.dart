@@ -4,12 +4,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/voucher_cubit/voucher_state.dart';
 import 'package:studioh_ceramic_cafe_client/model/voucher.dart';
+import 'package:studioh_ceramic_cafe_client/services/revenuecat_service.dart';
 import 'package:studioh_ceramic_cafe_client/utils/constant/firebase_collection_name.dart';
 
 class VoucherCubit extends Cubit<VoucherState> {
-  VoucherCubit() : super(const VoucherState()) {
-    loadAllVouchers();
-    listenToVouchers();
+  final String? userId;
+  final String? userEmail;
+
+  VoucherCubit({this.userId, this.userEmail}) : super(const VoucherState()) {
+    loadEligibleVouchers();
   }
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _sub;
@@ -20,85 +23,56 @@ class VoucherCubit extends Cubit<VoucherState> {
     return super.close();
   }
 
-  Future<void> loadAllVouchers() async {
+  /// Load all vouchers the current user is eligible for
+  Future<void> loadEligibleVouchers() async {
     emit(state.copyWith(isLoading: true));
+
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection(FirebaseCollectionName.VOUCHERS)
-          .get();
+      final List<Voucher> allVouchers = [];
 
-      List<Voucher> loaded = [];
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        final docId = doc.id;
+      // Check subscription status
+      final isSubscriber = await RevenueCatService.isPremium();
 
-        if (docId == 'VOUCHER_FREE_ITEMS' && data['vouchers'] is List) {
-          for (var v in data['vouchers']) {
-            loaded.add(Voucher.fromMap(v));
-          }
-        } else if (docId == 'VOUCHER_SUBSCRIPTION' ||
-            docId == 'VOUCHER_CUSTOM_ITEM') {
-          loaded.add(Voucher.fromMap({...data, 'code': docId}));
+      // 1. Subscription Vouchers (new subscriber)
+      if (isSubscriber) {
+        final newSubVoucher = await _fetchVoucher('VOUCHER_NEW_SUBSCRIBER');
+        if (newSubVoucher != null) {
+          allVouchers.add(newSubVoucher);
+        }
+
+        // Existing subscriber voucher
+        final existingSubVoucher = await _fetchVoucher(
+          'VOUCHER_EXISTING_SUBSCRIBER',
+        );
+        if (existingSubVoucher != null) {
+          allVouchers.add(existingSubVoucher);
         }
       }
 
-      emit(state.copyWith(allVouchers: loaded, isLoading: false));
-    } catch (e) {
-      emit(state.copyWith(allVouchers: [], isLoading: false));
-    }
-  }
+      // 2. Collection Voucher (available to all users who collect orders)
+      final collectionVoucher = await _fetchVoucher('VOUCHER_COLLECTION');
+      if (collectionVoucher != null) {
+        allVouchers.add(collectionVoucher);
+      }
 
-  void listenToVouchers() {
-    _sub?.cancel();
+      // 3. Specific Vouchers (assigned to this user)
+      if (userId != null) {
+        final specificVouchers = await _fetchSpecificVouchers(userId!);
+        allVouchers.addAll(specificVouchers);
+      }
 
-    _sub = FirebaseFirestore.instance
-        .collection(FirebaseCollectionName.VOUCHERS)
-        .snapshots()
-        .listen(
-          (snapshot) {
-            final list = snapshot.docs.map((doc) {
-              final data = Map<String, dynamic>.from(doc.data());
-              data.putIfAbsent('code', () => doc.id);
-              return Voucher.fromMap(data);
-            }).toList();
+      // 4. OhNo Vouchers (assigned to this user)
+      if (userId != null) {
+        final ohnoVouchers = await _fetchOhNoVouchers(userId!);
+        allVouchers.addAll(ohnoVouchers);
+      }
 
-            final categorized = _categorize(list);
-
-            emit(
-              state.copyWith(
-                allVouchers: list,
-                activeVouchers: categorized['active'],
-                usedVouchers: categorized['used'],
-                expiredVouchers: categorized['expired'],
-                isLoading: false,
-              ),
-            );
-          },
-          onError: (err) {
-            emit(state.copyWith(isLoading: false));
-            print('Voucher listen error: $err');
-          },
-        );
-  }
-
-  Future<void> fetchVouchersOnce() async {
-    emit(state.copyWith(isLoading: true));
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection(FirebaseCollectionName.VOUCHERS)
-          .get();
-
-      final list = snapshot.docs.map((doc) {
-        final data = Map<String, dynamic>.from(doc.data());
-        data.putIfAbsent('code', () => doc.id);
-        return Voucher.fromMap(data);
-      }).toList();
-
-      final categorized = _categorize(list);
+      // Categorize all vouchers
+      final categorized = _categorize(allVouchers);
 
       emit(
         state.copyWith(
-          allVouchers: list,
+          allVouchers: allVouchers,
           activeVouchers: categorized['active'],
           usedVouchers: categorized['used'],
           expiredVouchers: categorized['expired'],
@@ -106,9 +80,109 @@ class VoucherCubit extends Cubit<VoucherState> {
         ),
       );
     } catch (e) {
-      print('fetchVouchersOnce error: $e');
-      emit(state.copyWith(isLoading: false));
+      print('Error loading vouchers: $e');
+      emit(state.copyWith(allVouchers: [], isLoading: false));
     }
+  }
+
+  /// Fetch a single voucher document
+  Future<Voucher?> _fetchVoucher(String docId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.VOUCHERS)
+          .doc(docId)
+          .get();
+
+      if (doc.exists && doc.data() != null) {
+        final data = Map<String, dynamic>.from(doc.data()!);
+        data['code'] = docId;
+        return Voucher.fromMap(data);
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching voucher $docId: $e');
+      return null;
+    }
+  }
+
+  /// Fetch vouchers from VOUCHER_SPECIFIC assigned to this user
+  Future<List<Voucher>> _fetchSpecificVouchers(String userId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.VOUCHERS)
+          .doc('VOUCHER_SPECIFIC')
+          .get();
+
+      if (!doc.exists || doc.data() == null) return [];
+
+      final data = doc.data()!;
+      if (data['vouchers'] is! List) return [];
+
+      final List<Voucher> userVouchers = [];
+      for (var v in data['vouchers']) {
+        if (v is Map<String, dynamic> && v['assignedTo'] == userId) {
+          userVouchers.add(Voucher.fromMap(v));
+        }
+      }
+
+      return userVouchers;
+    } catch (e) {
+      print('Error fetching specific vouchers: $e');
+      return [];
+    }
+  }
+
+  /// Fetch OhNo vouchers assigned to this user
+  Future<List<Voucher>> _fetchOhNoVouchers(String userId) async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection(FirebaseCollectionName.VOUCHERS)
+          .doc('VOUCHER_OHNO')
+          .get();
+
+      if (!doc.exists || doc.data() == null) return [];
+
+      final data = doc.data()!;
+      if (data['vouchers'] is! List) return [];
+
+      final List<Voucher> userVouchers = [];
+      for (var v in data['vouchers']) {
+        if (v is Map<String, dynamic>) {
+          // OhNo vouchers might be assigned to specific users or available to all
+          if (v['assignedTo'] == null || v['assignedTo'] == userId) {
+            userVouchers.add(Voucher.fromMap(v));
+          }
+        }
+      }
+
+      return userVouchers;
+    } catch (e) {
+      print('Error fetching ohno vouchers: $e');
+      return [];
+    }
+  }
+
+  /// Refresh vouchers
+  Future<void> refresh() async {
+    await loadEligibleVouchers();
+  }
+
+  /// Listen to voucher changes in real-time
+  void listenToVouchers() {
+    _sub?.cancel();
+
+    _sub = FirebaseFirestore.instance
+        .collection(FirebaseCollectionName.VOUCHERS)
+        .snapshots()
+        .listen(
+          (_) {
+            // Reload when any voucher changes
+            loadEligibleVouchers();
+          },
+          onError: (err) {
+            print('Voucher listen error: $err');
+          },
+        );
   }
 
   Voucher? getByCode(String code) {
@@ -127,25 +201,6 @@ class VoucherCubit extends Cubit<VoucherState> {
           v.description.toLowerCase().contains(q) ||
           v.value.toLowerCase().contains(q);
     }).toList();
-  }
-
-  Future<void> loadSubscriptionVoucher() async {
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection(FirebaseCollectionName.VOUCHERS)
-          .doc('special_item')
-          .get();
-
-      if (doc.exists) {
-        final data = doc.data()!;
-        emit(state.copyWith(subscriptionVoucher: Voucher.fromMap(data)));
-      } else {
-        emit(state.copyWith(subscriptionVoucher: null));
-      }
-    } catch (e) {
-      print('Error loading subscription voucher: $e');
-      emit(state.copyWith(subscriptionVoucher: null));
-    }
   }
 
   Future<void> fetchAvailableProducts() async {
@@ -177,9 +232,7 @@ class VoucherCubit extends Cubit<VoucherState> {
       final isExpired = expiry.isBefore(now);
       final isUsed = v.redeemedDate != null;
       final isActiveFlag = v.isActive;
-      print(
-        'Voucher ${v.code} - isActive: $isActiveFlag, isUsed: $isUsed, isExpired: $isExpired',
-      );
+
       if (isUsed) {
         used.add(v);
       } else if (isExpired) {
@@ -187,13 +240,9 @@ class VoucherCubit extends Cubit<VoucherState> {
       } else if (isActiveFlag && !isExpired && !isUsed) {
         active.add(v);
       } else {
-        print('Voucher ${v.code} did not match any category');
         expired.add(v);
       }
     }
-    print('Active ${active.length}');
-    print('Used ${used.length}');
-    print("Expired ${expired.length}");
 
     return {'active': active, 'used': used, 'expired': expired};
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
+import 'package:studioh_ceramic_cafe_client/cubit/auth_cubit/auth_cubit.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/voucher_cubit/voucher_cubit.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/voucher_cubit/voucher_state.dart';
 import 'package:studioh_ceramic_cafe_client/model/voucher.dart';
@@ -22,7 +23,7 @@ class _VoucherPageState extends State<VoucherPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 1, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -33,8 +34,13 @@ class _VoucherPageState extends State<VoucherPage>
 
   @override
   Widget build(BuildContext context) {
+    // Get user info from AuthCubit
+    final authState = context.read<AuthCubit>().state;
+    final userId = authState.currentUserModel?.uid;
+    final userEmail = authState.currentUserModel?.email;
+
     return BlocProvider(
-      create: (_) => VoucherCubit(),
+      create: (_) => VoucherCubit(userId: userId, userEmail: userEmail),
       child: Scaffold(
         backgroundColor: Colors.white,
         body: BlocBuilder<VoucherCubit, VoucherState>(
@@ -49,13 +55,23 @@ class _VoucherPageState extends State<VoucherPage>
               );
             }
 
-            if (state.activeVouchers.isEmpty) {
-              return const Center(child: Text('No vouchers'));
-            }
-
             return Column(
               children: [
-                _buildVoucherList(state.allVouchers, 'Vouchers'),
+                const SizedBox(height: 16),
+                _buildStatsCard(state),
+                const SizedBox(height: 16),
+                _buildTabBar(),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildVoucherList(state.activeVouchers, 'active'),
+                      _buildVoucherList(state.usedVouchers, 'used'),
+                      _buildVoucherList(state.expiredVouchers, 'expired'),
+                    ],
+                  ),
+                ),
               ],
             );
           },
@@ -66,36 +82,31 @@ class _VoucherPageState extends State<VoucherPage>
 
   Widget _buildStatsCard(VoucherState state) {
     return Container(
-      // margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          Expanded(
-            child: _buildStatItem(
-              Icons.card_giftcard,
-              state.activeVouchers.length.toString(),
-              'Active',
-            ),
+          _buildStatItem(
+            Icons.card_giftcard,
+            state.activeVouchers.length.toString(),
+            'Active',
           ),
-          Container(width: 1, height: 40, color: Colors.white.withOpacity(0.3)),
-          Expanded(
-            child: _buildStatItem(
-              Icons.check_circle,
-              state.usedVouchers.length.toString(),
-              'Used',
-            ),
+          Container(width: 1, height: 30, color: Colors.white.withOpacity(0.3)),
+          _buildStatItem(
+            Icons.check_circle,
+            state.usedVouchers.length.toString(),
+            'Used',
           ),
-          Container(width: 1, height: 40, color: Colors.white.withOpacity(0.3)),
-          Expanded(
-            child: _buildStatItem(
-              Icons.access_time,
-              state.expiredVouchers.length.toString(),
-              'Expired',
-            ),
+          Container(width: 1, height: 30, color: Colors.white.withOpacity(0.3)),
+          _buildStatItem(
+            Icons.access_time,
+            state.expiredVouchers.length.toString(),
+            'Expired',
           ),
         ],
       ),
@@ -103,26 +114,31 @@ class _VoucherPageState extends State<VoucherPage>
   }
 
   Widget _buildStatItem(IconData icon, String value, String label) {
-    return Column(
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: Colors.white, size: 28),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.white.withOpacity(0.9),
-            fontWeight: FontWeight.w500,
-          ),
+        Icon(icon, color: Colors.white, size: 18),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.white.withOpacity(0.8),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -130,61 +146,54 @@ class _VoucherPageState extends State<VoucherPage>
 
   Widget _buildTabBar() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 3)),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          _buildTabItem(0, 'Active', Icons.flash_on_rounded),
+          const SizedBox(width: 8),
+          _buildTabItem(1, 'Used', Icons.check_circle_outline),
+          const SizedBox(width: 8),
+          _buildTabItem(2, 'Expired', Icons.schedule),
         ],
       ),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          color: Color(0xFFeeae4d),
-          borderRadius: BorderRadius.circular(12),
+    );
+  }
+
+  Widget _buildTabItem(int index, String label, IconData icon) {
+    final isSelected = _tabController.index == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _tabController.animateTo(index);
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.button : Colors.grey[100],
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? Colors.white : Colors.grey[600],
+              ),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
         ),
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.grey[700],
-        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-        dividerColor: Colors.transparent,
-        indicatorPadding: const EdgeInsets.symmetric(
-          horizontal: 4,
-          vertical: 4,
-        ),
-        tabs: [
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.flash_on, size: 18),
-                SizedBox(width: 6),
-                Text('Active'),
-              ],
-            ),
-          ),
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.done_all, size: 18),
-                SizedBox(width: 6),
-                Text('Used'),
-              ],
-            ),
-          ),
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.timer_off, size: 18),
-                SizedBox(width: 6),
-                Text('Expired'),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -227,15 +236,13 @@ class _VoucherPageState extends State<VoucherPage>
       );
     }
 
-    // Provide bounded height to the ListView so it can layout correctly inside Column
-    return Expanded(
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: vouchers.length,
-        itemBuilder: (context, index) {
-          return _buildVoucherCard(vouchers[index], type);
-        },
-      ),
+    // ListView inside TabBarView doesn't need Expanded wrapper
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: vouchers.length,
+      itemBuilder: (context, index) {
+        return _buildVoucherCard(vouchers[index], type);
+      },
     );
   }
 
