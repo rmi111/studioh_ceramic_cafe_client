@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:studioh_ceramic_cafe_client/services/revenuecat_service.dart';
 import 'package:studioh_ceramic_cafe_client/utils/route/app_routes.dart';
 import 'package:studioh_ceramic_cafe_client/utils/widget/snacke_bar.dart';
 import '../../cubit/auth_cubit/auth_cubit.dart';
 import '../../model/user.dart';
 import '../../utils/constant/app_colors.dart';
 import '../../utils/widget/custom_text.dart';
+
 class OwnProfileScreen extends StatelessWidget {
   const OwnProfileScreen({Key? key}) : super(key: key);
 
@@ -36,79 +38,88 @@ class OwnProfileScreen extends StatelessWidget {
             }
 
             return SafeArea(
-              child: Column(
-                children: [
-                  // Top Bar with Edit Button
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: Icon(Icons.close, color: AppColors.text),
-                          tooltip: 'Close',
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: CustomText(
-                              text: 'Profile',
-                              color: AppColors.text,
-                              fontSizeFactor: 1.3,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.button,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            onPressed: () {
-                           Navigator.pushNamed(context,AppRoutes.editProfile);
-                            },
-                            icon: Icon(Icons.edit, color: AppColors.background),
-                            tooltip: 'Edit Profile',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Profile Header Card
-                  _PersonalInfoCard(user: currentUser),
-
-                  const SizedBox(height: 10),
-
-                  // Menu Options
-                  Container(
-                    margin: EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(30),bottom: Radius.circular(30)
-                      ),
-                    ),
-                    child: SingleChildScrollView(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Top Bar with Edit Button
+                    Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
-                        vertical: 20,
+                        vertical: 10,
                       ),
-                      child: Column(
+                      child: Row(
                         children: [
-                  
-                          _PremiumCard(user: currentUser),
-                          const SizedBox(height: 14),
-                          _LogoutButton(),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: Icon(Icons.close, color: AppColors.text),
+                            tooltip: 'Close',
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: CustomText(
+                                text: 'Profile',
+                                color: AppColors.text,
+                                fontSizeFactor: 1.3,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.button,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: IconButton(
+                              onPressed: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.editProfile,
+                                );
+                              },
+                              icon: Icon(
+                                Icons.edit,
+                                color: AppColors.background,
+                              ),
+                              tooltip: 'Edit Profile',
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+
+                    // Profile Header Card
+                    _PersonalInfoCard(user: currentUser),
+
+                    const SizedBox(height: 10),
+
+                    // Menu Options
+                    Container(
+                      margin: EdgeInsets.symmetric(horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(30),
+                          bottom: Radius.circular(30),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 20,
+                        ),
+                        child: Column(
+                          children: [
+                            _PremiumCard(user: currentUser),
+                            const SizedBox(height: 14),
+                            _LogoutButton(),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             );
           },
@@ -196,7 +207,7 @@ class _PersonalInfoCard extends StatelessWidget {
 
           // Name
           Text(
-            user.name  ?? user.name,
+            user.name ?? user.name,
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -204,7 +215,6 @@ class _PersonalInfoCard extends StatelessWidget {
               letterSpacing: 0.5,
             ),
           ),
-
 
           // User Type Badge
           Container(
@@ -351,15 +361,115 @@ class _ProfileOption extends StatelessWidget {
   }
 }
 
-class _PremiumCard extends StatelessWidget {
+class _PremiumCard extends StatefulWidget {
   final UserModel user;
-  
+
   const _PremiumCard({Key? key, required this.user}) : super(key: key);
 
   @override
+  State<_PremiumCard> createState() => _PremiumCardState();
+}
+
+class _PremiumCardState extends State<_PremiumCard> {
+  bool _isSubscriber = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSubscriptionStatus();
+  }
+
+  Future<void> _checkSubscriptionStatus() async {
+    try {
+      final isPremium = await RevenueCatService.isPremium();
+      if (mounted) {
+        setState(() {
+          _isSubscriber = isPremium;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSubscriber = widget.user.isSubscriber;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _openSubscriptionManagement() async {
+    // Show dialog with subscription management options
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.workspace_premium_rounded, color: Colors.purple[600]),
+            const SizedBox(width: 10),
+            const Flexible(
+              child: Text(
+                'Manage Subscription',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'To cancel or modify your subscription:',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            SizedBox(height: 12),
+            Text('1. Open Settings on your iPhone'),
+            SizedBox(height: 4),
+            Text('2. Tap your Apple ID at the top'),
+            SizedBox(height: 4),
+            Text('3. Tap "Subscriptions"'),
+            SizedBox(height: 4),
+            Text('4. Find and tap "Studioh"'),
+            SizedBox(height: 12),
+            Text(
+              '💡 Your subscription will remain active until the end of the current billing period.',
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isSubscriber = user.isSubscriber;
-    
+    if (_isLoading) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.grey[200],
+        ),
+        child: const Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(15),
@@ -368,13 +478,15 @@ class _PremiumCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isSubscriber 
+          colors: _isSubscriber
               ? [Colors.purple[300]!, Colors.purple[600]!]
               : [Colors.grey[400]!, Colors.grey[600]!],
         ),
         boxShadow: [
           BoxShadow(
-            color: (isSubscriber ? Colors.purple : Colors.grey).withOpacity(0.3),
+            color: (_isSubscriber ? Colors.purple : Colors.grey).withOpacity(
+              0.3,
+            ),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -386,26 +498,43 @@ class _PremiumCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                isSubscriber ? 'Premium Member' : 'Become Premium',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_isSubscriber)
+                      const Icon(
+                        Icons.workspace_premium_rounded,
+                        color: Colors.amber,
+                        size: 22,
+                      ),
+                    if (_isSubscriber) const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        _isSubscriber ? 'Premium' : 'Become Premium',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+                  horizontal: 10,
+                  vertical: 5,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  isSubscriber ? 'Active' : 'Not Subscribed',
+                  _isSubscriber ? '✓ Active' : 'Free',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -417,17 +546,27 @@ class _PremiumCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            isSubscriber 
-                ? 'Thank you for being a premium member!' 
+            _isSubscriber
+                ? 'Thank you for being a premium member! Enjoy all exclusive features.'
                 : 'Unlock exclusive features and benefits',
-            style: const TextStyle(fontSize: 14, color: Colors.white70, height: 1.5),
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.white70,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 16),
+
+          // Primary button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.subscription);
+                if (_isSubscriber) {
+                  _openSubscriptionManagement();
+                } else {
+                  Navigator.pushNamed(context, AppRoutes.subscription);
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
@@ -437,20 +576,42 @@ class _PremiumCard extends StatelessWidget {
                 ),
               ),
               child: Text(
-                isSubscriber ? 'Manage Subscription' : 'Subscribe Now',
+                _isSubscriber ? 'Manage Subscription' : 'Subscribe Now',
                 style: TextStyle(
-                  color: isSubscriber ? Colors.purple[600] : Colors.grey[700],
+                  color: _isSubscriber ? Colors.purple[600] : Colors.grey[700],
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
               ),
             ),
           ),
+
+          // Secondary button for subscribers - view benefits
+          if (_isSubscriber) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, AppRoutes.subscription);
+                },
+                child: const Text(
+                  'View Premium Benefits',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 }
+
 class _LogoutButton extends StatelessWidget {
   const _LogoutButton({Key? key}) : super(key: key);
 
@@ -468,7 +629,6 @@ class _LogoutButton extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
-          
               context.read<AuthCubit>().signOut();
             },
             child: const Text('Logout', style: TextStyle(color: Colors.white)),
@@ -489,7 +649,9 @@ class _LogoutButton extends StatelessWidget {
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(colors: [Colors.red[400]!, Colors.red[600]!]),
+            gradient: LinearGradient(
+              colors: [Colors.red[400]!, Colors.red[600]!],
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.red.withOpacity(0.3),
@@ -513,12 +675,18 @@ class _LogoutButton extends StatelessWidget {
                         height: 22,
                         width: 22,
                         child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                           strokeWidth: 2.5,
                         ),
                       )
                     else
-                      const Icon(Icons.logout_rounded, color: Colors.white, size: 22),
+                      const Icon(
+                        Icons.logout_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
                     const SizedBox(width: 12),
                     Text(
                       isLoading ? 'Logging out...' : 'Logout',

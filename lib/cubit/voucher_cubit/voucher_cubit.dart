@@ -177,7 +177,9 @@ class VoucherCubit extends Cubit<VoucherState> {
       final isExpired = expiry.isBefore(now);
       final isUsed = v.redeemedDate != null;
       final isActiveFlag = v.isActive;
-     print('Voucher ${v.code} - isActive: $isActiveFlag, isUsed: $isUsed, isExpired: $isExpired');
+      print(
+        'Voucher ${v.code} - isActive: $isActiveFlag, isUsed: $isUsed, isExpired: $isExpired',
+      );
       if (isUsed) {
         used.add(v);
       } else if (isExpired) {
