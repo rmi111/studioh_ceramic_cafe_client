@@ -148,8 +148,8 @@ class VoucherCubit extends Cubit<VoucherState> {
       final List<Voucher> userVouchers = [];
       for (var v in data['vouchers']) {
         if (v is Map<String, dynamic>) {
-          // OhNo vouchers might be assigned to specific users or available to all
-          if (v['assignedTo'] == null || v['assignedTo'] == userId) {
+          // OhNo vouchers only show if assigned to this specific user
+          if (v['assignedTo'] == userId) {
             userVouchers.add(Voucher.fromMap(v));
           }
         }
