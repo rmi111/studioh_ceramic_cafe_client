@@ -47,7 +47,7 @@ class _OrderListPageState extends State<OrderListPage> {
     return BlocProvider(
       create: (context) =>
           OrderCubit(authCubit: context.read<AuthCubit>())
-            ..listenToOrders(isAdmin: false),
+            ..fetchOrders(),
       child: Scaffold(
         backgroundColor: Colors.white,
         body: BlocBuilder<OrderCubit, OrderState>(

@@ -1,7 +1,6 @@
 part of 'auth_cubit.dart';
 
 class AuthState {
-  final User? firebaseUser;
   final UserModel? currentUserModel;
   final bool isLoading;
   final bool isObscure;
@@ -17,7 +16,6 @@ class AuthState {
   final List<UserModel> adminUsers;
 
   const AuthState({
-    this.firebaseUser,
     this.currentUserModel,
     this.isLoading = false,
     this.isObscure = true,
@@ -25,16 +23,15 @@ class AuthState {
     this.isRememberMe = false,
     this.isEmailValid = false,
     this.isPasswordValid = false,
-    this.isLoggedIn = false, // ✅ NEW
+    this.isLoggedIn = false,
     this.message = '',
-    this.userEmail = '', // ✅ NEW
-    this.userType = '', // ✅ NEW
+    this.userEmail = '',
+    this.userType = '',
     this.allUsers = const [],
     this.adminUsers = const [],
   });
 
   AuthState copyWith({
-    User? firebaseUser,
     UserModel? currentUserModel,
     bool? isLoading,
     bool? isObscure,
@@ -48,10 +45,11 @@ class AuthState {
     String? userType,
     List<UserModel>? allUsers,
     List<UserModel>? adminUsers,
+    bool clearUser = false,
   }) {
     return AuthState(
-      firebaseUser: firebaseUser ?? this.firebaseUser,
-      currentUserModel: currentUserModel ?? this.currentUserModel,
+      currentUserModel:
+          clearUser ? null : (currentUserModel ?? this.currentUserModel),
       isLoading: isLoading ?? this.isLoading,
       isObscure: isObscure ?? this.isObscure,
       isLogin: isLogin ?? this.isLogin,
@@ -72,7 +70,6 @@ class AuthState {
       identical(this, other) ||
       other is AuthState &&
           runtimeType == other.runtimeType &&
-          firebaseUser == other.firebaseUser &&
           currentUserModel == other.currentUserModel &&
           isLoading == other.isLoading &&
           isObscure == other.isObscure &&
@@ -89,7 +86,6 @@ class AuthState {
 
   @override
   int get hashCode =>
-      firebaseUser.hashCode ^
       currentUserModel.hashCode ^
       isLoading.hashCode ^
       isObscure.hashCode ^

@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../services/revenuecat_service.dart';
@@ -20,11 +19,8 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
   void _onCustomerInfoUpdate(CustomerInfo info) {
     final isPremium = info.entitlements.all[RevenueCatService.entitlementId]?.isActive ?? false;
     emit(state.copyWith(isPremium: isPremium));
-    
-    // Sync with Firestore if we have a user ID
-    if (userId != null) {
-      _syncSubscriptionToFirestore(isPremium);
-    }
+    // Subscription sync is now handled by RevenueCat webhook → Laravel backend
+    // No need to write to Firestore directly
   }
 
   /// Load available subscription offerings
@@ -78,12 +74,7 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
           status: SubscriptionStatus.purchased,
           isPremium: true,
         ));
-        
-        // Sync with Firestore
-        if (userId != null) {
-          await _syncSubscriptionToFirestore(true);
-        }
-        
+        // Webhook handles server-side sync automatically
         return true;
       } else {
         emit(state.copyWith(
@@ -112,11 +103,7 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
         status: SubscriptionStatus.loaded,
         isPremium: isPremium,
       ));
-      
-      if (userId != null && isPremium) {
-        await _syncSubscriptionToFirestore(true);
-      }
-      
+      // Webhook handles server-side sync automatically
       return isPremium;
     } catch (e) {
       emit(state.copyWith(
@@ -124,20 +111,6 @@ class SubscriptionCubit extends Cubit<SubscriptionState> {
         errorMessage: 'Restore failed: $e',
       ));
       return false;
-    }
-  }
-
-  /// Sync subscription status to Firestore
-  Future<void> _syncSubscriptionToFirestore(bool isSubscriber) async {
-    if (userId == null) return;
-    
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .update({'isSubscriber': isSubscriber});
-    } catch (e) {
-      print('Failed to sync subscription to Firestore: $e');
     }
   }
 

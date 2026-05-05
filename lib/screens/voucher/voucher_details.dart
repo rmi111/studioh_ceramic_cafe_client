@@ -41,7 +41,7 @@ class _VoucherDetailsScreenState extends State<VoucherDetailsScreen>
   @override
   Widget build(BuildContext context) {
     final bool isActive = widget.voucher.isActive;
-    final int daysUntilExpiry =widget.voucher.expiryDate;
+    final int daysUntilExpiry = _daysUntilExpiry(widget.voucher.expiryDate);
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -570,7 +570,7 @@ class _VoucherDetailsScreenState extends State<VoucherDetailsScreen>
             _buildInfoRow(
               Icons.check_circle,
               'Redeemed On',
-              formatDate(widget.voucher.redeemedDate!),
+              formatDate(widget.voucher.redeemedDate),
             ),
           ],
         ],
@@ -703,9 +703,27 @@ class _VoucherDetailsScreenState extends State<VoucherDetailsScreen>
       ),
     );
   }
-    String formatDate(int millis) {
-    DateTime orderedDate = DateTime.fromMillisecondsSinceEpoch(millis);
-    return DateFormat('dd MMM yyyy, h:mm a').format(orderedDate);
+  int _daysUntilExpiry(String? expiryDate) {
+    final dt = expiryDate == null ? null : DateTime.tryParse(expiryDate);
+    if (dt == null) return 0;
+    return dt.difference(DateTime.now()).inDays;
+  }
+
+  String formatDate(Object? value) {
+    if (value == null) return '';
+
+    DateTime? date;
+    if (value is int) {
+      date = DateTime.fromMillisecondsSinceEpoch(value);
+    } else if (value is String) {
+      date = DateTime.tryParse(value);
+      date ??= int.tryParse(value) != null
+          ? DateTime.fromMillisecondsSinceEpoch(int.parse(value))
+          : null;
+    }
+
+    if (date == null) return value.toString();
+    return DateFormat('dd MMM yyyy, h:mm a').format(date);
   }
 }
 

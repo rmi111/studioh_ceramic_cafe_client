@@ -13,6 +13,7 @@ import 'package:studioh_ceramic_cafe_client/screens/splash_screen.dart';
 import 'package:studioh_ceramic_cafe_client/utils/route/app_router.dart';
 import 'package:studioh_ceramic_cafe_client/utils/route/app_routes.dart';
 import 'cubit/order_cubit/order_cubit.dart';
+import 'services/api_service.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -40,6 +41,9 @@ void main() async {
   } catch (e) {
     print(' RevenueCat initialization failed: $e');
   }
+
+  // Initialize API service (Dio interceptors)
+  ApiService.init();
 
   runApp(const MyApp());
 
@@ -154,10 +158,27 @@ Future<void> _setupMessaging() async {
       }
     });
 
-    // Token refresh listener
+    // Token refresh listener — also register with Laravel backend
     FirebaseMessaging.instance.onTokenRefresh.listen((token) {
       print('Refreshed FCM Token: $token');
+      ApiService.registerDevice(
+        fcmToken: token,
+        platform: Platform.isIOS ? 'ios' : 'android',
+      ).catchError((_) {});
     });
+
+    // Register FCM token with Laravel backend
+    if (fcmToken != null) {
+      try {
+        await ApiService.registerDevice(
+          fcmToken: fcmToken,
+          platform: Platform.isIOS ? 'ios' : 'android',
+        );
+        print('FCM token registered with backend');
+      } catch (_) {
+        // Silently fail — user may not be logged in yet
+      }
+    }
 
     print('All messaging setup complete');
     _initializationComplete = true;

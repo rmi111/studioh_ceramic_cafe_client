@@ -3,91 +3,103 @@ class Voucher {
   final String type;
   final String value;
   final String description;
-  final int expiryDate;
+  final String? expiryDate; // ISO string from API
   final bool isActive;
-  final int? redeemedDate;
+  final String? redeemedDate; // ISO string from API
+  final int? assignedTo; // user ID from API
+  final String? assignedToEmail;
+  final String? assignedToName;
 
   Voucher({
     required this.code,
     required this.type,
     required this.value,
     required this.description,
-    required this.expiryDate,
+    this.expiryDate,
     required this.isActive,
     this.redeemedDate,
+    this.assignedTo,
+    this.assignedToEmail,
+    this.assignedToName,
   });
 
-  // Convert a Voucher instance to a Map
-  Map<String, dynamic> toMap() {
-    return {
-      'code': code,
-      'type': type,
-      'value': value,
-      'description': description,
-      'expiryDate': expiryDate,
-      'isActive': isActive,
-      'redeemedDate': redeemedDate,
-    };
-  }
+  /// Parse from Laravel API JSON response
+  factory Voucher.fromJson(Map<String, dynamic> json) {
+    // Handle nested 'voucher' key if present
+    final Map<String, dynamic> data = json.containsKey('voucher') 
+        ? Map<String, dynamic>.from(json['voucher'] as Map)
+        : json;
 
-  // Create Voucher from a Map (handles int, double, String, DateTime)
-  factory Voucher.fromMap(Map<String, dynamic> map) {
-    int _parseToMillis(dynamic v) {
-      if (v == null) return 0;
-      if (v is int) return v;
-      if (v is double) return v.toInt();
-      if (v is DateTime) return v.millisecondsSinceEpoch;
-      if (v is String) {
-        // try parse as int first, then DateTime
-        final asInt = int.tryParse(v);
-        if (asInt != null) return asInt;
-        final asDate = DateTime.tryParse(v);
-        if (asDate != null) return asDate.millisecondsSinceEpoch;
-        return 0;
+    String? parseDate(dynamic date) {
+      if (date == null) return null;
+      if (date is int) {
+        return DateTime.fromMillisecondsSinceEpoch(date).toIso8601String();
       }
-      return 0;
+      return date.toString();
     }
 
-    final expiryMillis = _parseToMillis(map['expiryDate']);
-    final redeemedMillis =
-        map['redeemedDate'] != null
-            ? _parseToMillis(map['redeemedDate'])
-            : null;
-
     return Voucher(
-      code: map['code']?.toString() ?? '',
-      type: map['type']?.toString() ?? '',
-      value: map['value']?.toString() ?? '',
-      description: map['description']?.toString() ?? '',
-      expiryDate: expiryMillis,
-      isActive:
-          map['isActive'] is bool
-              ? map['isActive']
-              : (map['isActive']?.toString().toLowerCase() == 'true'),
-      redeemedDate: redeemedMillis,
+      code: data['code']?.toString() ?? '',
+      type: data['type']?.toString() ?? '',
+      value: data['value']?.toString() ?? '',
+      description: data['description']?.toString() ?? '',
+      expiryDate: parseDate(data['expiry_date']),
+      isActive: data['is_active'] is bool
+          ? data['is_active']
+          : (data['is_active']?.toString().toLowerCase() != 'false'), // Default to true if not explicitly false
+      redeemedDate: parseDate(data['redeemed_date']),
+      assignedTo: data['assigned_to'] is int ? data['assigned_to'] : null,
+      assignedToEmail: data['assigned_to_email']?.toString(),
+      assignedToName: data['assigned_to_name']?.toString(),
     );
   }
-  // Create a Voucher instance from a Map
-  // factory Voucher.fromMap(Map<String, dynamic> map) {
-  //   return Voucher(
-  //     code: map['code'] as String,
-  //     type: map['type'] as String,
-  //     value: map['value'] as String,
-  //     description: map['description'] as String,
-  //     expiryDate: map['expiryDate'] as int,
-  //     isActive: map['isActive'] as bool,
-  //     redeemedDate: map['redeemedDate'] as int?,
-  //   );
-  // }
+
+  /// Helper to check if voucher has been redeemed
+  bool get isRedeemed => redeemedDate != null;
+
+  /// Helper to check if voucher is expired
+  bool get isExpired {
+    if (expiryDate == null) return false;
+    try {
+      final expiry = DateTime.parse(expiryDate!);
+      return expiry.isBefore(DateTime.now());
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Parse expiry date as DateTime
+  DateTime? get expiryDateTime {
+    if (expiryDate == null) return null;
+    try {
+      return DateTime.parse(expiryDate!);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Parse redeemed date as DateTime
+  DateTime? get redeemedDateTime {
+    if (redeemedDate == null) return null;
+    try {
+      return DateTime.parse(redeemedDate!);
+    } catch (_) {
+      return null;
+    }
+  }
 
   Voucher copyWith({
     String? code,
     String? type,
     String? value,
     String? description,
-    int? expiryDate,
+    String? expiryDate,
     bool? isActive,
-    int? redeemedDate,
+    String? redeemedDate,
+    int? assignedTo,
+    String? assignedToEmail,
+    String? assignedToName,
+    bool clearAssignment = false,
   }) {
     return Voucher(
       code: code ?? this.code,
@@ -97,6 +109,13 @@ class Voucher {
       expiryDate: expiryDate ?? this.expiryDate,
       isActive: isActive ?? this.isActive,
       redeemedDate: redeemedDate ?? this.redeemedDate,
+      assignedTo: clearAssignment ? null : (assignedTo ?? this.assignedTo),
+      assignedToEmail: clearAssignment
+          ? null
+          : (assignedToEmail ?? this.assignedToEmail),
+      assignedToName: clearAssignment
+          ? null
+          : (assignedToName ?? this.assignedToName),
     );
   }
 }
