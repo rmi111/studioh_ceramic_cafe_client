@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/auth_cubit/auth_cubit.dart';
-import 'package:studioh_ceramic_cafe_client/screens/auth/register_screen.dart';
 import 'package:studioh_ceramic_cafe_client/utils/widget/app_text_field.dart';
 import 'package:studioh_ceramic_cafe_client/utils/widget/custom_btn.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../utils/route/app_routes.dart';
 import '../../utils/widget/snacke_bar.dart';
-import 'register_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -29,10 +25,12 @@ class LoginScreen extends StatelessWidget {
                 state.message.contains('Error'))) {
           AppSnackbar.showError(context, state.message);
         }
-        // Show success and navigate
+        // Show success, trigger welcome, and navigate
         if (state.isLoggedIn && state.currentUserModel != null) {
           AppSnackbar.show(context, 'Login Successful');
-          Navigator.pushReplacementNamed(context, AppRoutes.home);
+
+          // Show welcome for first-time users, then navigate
+          _showWelcomeAndNavigate(context, state);
         }
       },
       child: Scaffold(
@@ -96,7 +94,6 @@ class LoginScreen extends StatelessWidget {
                                 }
 
                                 context.read<AuthCubit>().loginWithEmail(
-                                  context,
                                   email,
                                 );
                               },
@@ -129,5 +126,21 @@ class LoginScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Show welcome dialog for first-time users, then navigate to home
+  void _showWelcomeAndNavigate(BuildContext context, AuthState state) async {
+    final authCubit = context.read<AuthCubit>();
+    final user = state.currentUserModel!;
+
+    // Show welcome for first-time users
+    if (!user.enrolledByClient) {
+      await authCubit.checkFirstLoginAndShowWelcome(context, user.id);
+    }
+
+    // Navigate to home
+    if (context.mounted) {
+      Navigator.pushReplacementNamed(context, AppRoutes.home);
+    }
   }
 }

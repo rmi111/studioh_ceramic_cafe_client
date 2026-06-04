@@ -36,7 +36,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     BottomNavigationBarItem(icon: Icon(Icons.card_giftcard), label: 'Vouchers'),
     BottomNavigationBarItem(
       icon: Icon(Icons.calendar_today),
-      label: 'Book Now',
+      label: 'Orders',
     ),
     BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Message'),
   ];

@@ -157,7 +157,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   /// Email-only login (no password required for customers)
-  Future<void> loginWithEmail(BuildContext context, String email) async {
+  Future<void> loginWithEmail(String email) async {
     print('📧 Attempting email login for: $email');
     emit(state.copyWith(isLoading: true, message: ''));
 
@@ -197,16 +197,6 @@ class AuthCubit extends Cubit<AuthState> {
         userEmail: email,
         userType: userModel.userType,
       ));
-
-      // Check first login welcome
-      if (state.isLoggedIn &&
-          state.currentUserModel != null &&
-          context.mounted) {
-        await checkFirstLoginAndShowWelcome(
-          context,
-          state.currentUserModel!.id,
-        );
-      }
 
       // Register FCM token
       _registerFcmToken();

@@ -2,12 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:studioh_ceramic_cafe_client/cubit/auth_cubit/auth_cubit.dart';
-import 'package:studioh_ceramic_cafe_client/screens/auth/login_screen.dart';
 import 'package:studioh_ceramic_cafe_client/utils/widget/app_text_field.dart';
 import 'package:studioh_ceramic_cafe_client/utils/widget/custom_btn.dart';
-
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../utils/route/app_routes.dart';
 import '../../utils/widget/snacke_bar.dart';
@@ -27,9 +23,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    nameController = TextEditingController();
-    emailController = TextEditingController();
-    phoneNumberController = TextEditingController();
+    nameController = TextEditingController(text: "aaa111");
+    emailController = TextEditingController(text: "rminc0102@gmail.com");
+    phoneNumberController = TextEditingController(text: "27721234567");
   }
 
   @override
@@ -79,12 +75,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  /// Show welcome dialog for first-time users, then navigate to home
+  void _showWelcomeAndNavigate(BuildContext context, AuthState state) async {
+    final authCubit = context.read<AuthCubit>();
+    final user = state.currentUserModel!;
+
+    // New users are always first-time, show welcome
+    if (!user.enrolledByClient) {
+      await authCubit.checkFirstLoginAndShowWelcome(context, user.id);
+    }
+
+    // Navigate to home
+    if (context.mounted) {
+      Navigator.pushReplacementNamed(context, AppRoutes.home);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
-        if (state.message.contains('❌')) {
-          AppSnackbar.show(context, state.message);
+        // Show error messages
+        if (state.message.contains('❌') && !state.isLoading) {
+          AppSnackbar.showError(context, state.message);
+        }
+
+        // Handle successful registration — show welcome and navigate to home
+        if (state.isLoggedIn &&
+            state.currentUserModel != null &&
+            !state.isLoading) {
+          AppSnackbar.show(context, 'Registration Successful! 🎉');
+          _showWelcomeAndNavigate(context, state);
         }
       },
       child: Scaffold(

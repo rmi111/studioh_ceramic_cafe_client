@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:studioh_ceramic_cafe_client/screens/user/admin_list.dart';
 import 'package:studioh_ceramic_cafe_client/utils/widget/snacke_bar.dart';
+import '../../cubit/order_cubit/order_cubit.dart';
 import '../../model/orders.dart';
 import '../../utils/constant/constants.dart';
 import '../../utils/constant/date_formatter.dart';
@@ -33,202 +35,219 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     AppSnackbar.show(context, "Status: $status");
   }
 
+  /// Find the latest version of this order from the cubit state
+  OrderModel _getLatestOrder(OrderState orderState) {
+    try {
+      return orderState.orders.firstWhere(
+        (o) => o.refNumber == widget.order.refNumber,
+      );
+    } catch (_) {
+      // Fallback to the original order if not found (e.g. deleted)
+      return widget.order;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    print("Total Image ${widget.order.imgUrl.length}");
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: Icon(Icons.arrow_back_ios),
-        ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            CustomText(
-              text: 'Order Details',
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
+    return BlocBuilder<OrderCubit, OrderState>(
+      builder: (context, orderState) {
+        final order = _getLatestOrder(orderState);
+
+        print("Total Image ${order.imgUrl.length}");
+        return Scaffold(
+          appBar: AppBar(
+            centerTitle: true,
+            backgroundColor: Colors.white,
+            leading: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.arrow_back_ios),
             ),
-          ],
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 CustomText(
-                  text: 'Order Ref: ${widget.order.refNumber}',
+                  text: 'Order Details',
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-                Spacer(),
-
-                IconButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => 
-                        ChatListPage(order: widget.order),
-                      ),
-                    );
-                  },
-                  icon: Icon(Icons.message, color: Colors.amber),
+                  fontSize: 20,
                 ),
               ],
             ),
+          ),
+          body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CustomText(
+                      text: 'Order Ref: ${order.refNumber}',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                    Spacer(),
 
-            Align(
-              alignment: Alignment.center,
-              child:
-                  widget.order.imgUrl.isNotEmpty &&
-                      widget
-                          .order
-                          .imgUrl[widget.order.imgUrl.length - 1]
-                          .isNotEmpty
-                  ? OrderImageSlider(
-                      imgUrls: widget.order.imgUrl,
-                      initialIndex: widget.order.imgUrl.length - 1,
-                    )
-                  : Container(
-                      margin: EdgeInsets.all(5),
-                      height: 150,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(5),
-                        color: Colors.grey[200],
-                        image: DecorationImage(
-                          image: AssetImage(
-                            'assets/images/no-image-icon-4.png',
+                    IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => 
+                            ChatListPage(order: order),
                           ),
-                          fit: BoxFit.cover,
+                        );
+                      },
+                      icon: Icon(Icons.message, color: Colors.amber),
+                    ),
+                  ],
+                ),
+
+                Align(
+                  alignment: Alignment.center,
+                  child:
+                      order.imgUrl.isNotEmpty &&
+                          order
+                              .imgUrl[order.imgUrl.length - 1]
+                              .isNotEmpty
+                      ? OrderImageSlider(
+                          imgUrls: order.imgUrl,
+                          initialIndex: order.imgUrl.length - 1,
+                        )
+                      : Container(
+                          margin: EdgeInsets.all(5),
+                          height: 150,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(5),
+                            color: Colors.grey[200],
+                            image: DecorationImage(
+                              image: AssetImage(
+                                'assets/images/no-image-icon-4.png',
+                              ),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
+                ),
+                const SizedBox(height: 5),
+                CustomText(text: 'Customer Name: ${order.users[0].name}'),
+                CustomText(text: 'Email: ${order.users[0].email}'),
+                CustomText(text: 'Phone: ${order.users[0].phoneNumber}'),
+                CustomText(text: 'Description: ${order.description}'),
+                CustomText(
+                  text:
+                      'Order Date: ${DateFormatter.formatDate(order.orderDate)}',
+                ),
+                const SizedBox(height: 10),
+                
+                // Status Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: StatusHelper.getStatusColor(order.status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: StatusHelper.getStatusColor(order.status)),
+                  ),
+                  child: Text(
+                    'Current Status: ${StatusHelper.getStatusLabel(order.status)}',
+                    style: TextStyle(
+                      color: StatusHelper.getStatusColor(order.status),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+
+                // Status Histories
+                if (order.statusHistories.isNotEmpty) ...[
+                  CustomText(
+                    text: 'Status History',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: order.statusHistories.length,
+                      separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[200]),
+                      itemBuilder: (context, index) {
+                        final history = order.statusHistories[index];
+                        return ListTile(
+                          dense: true,
+                          title: Text(
+                            StatusHelper.getStatusLabel(history.toStatus),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            history.fromStatus != null 
+                              ? 'From: ${StatusHelper.getStatusLabel(history.fromStatus!)}' 
+                              : 'Initial status',
+                          ),
+                          trailing: Text(
+                            DateFormatter.formatDate(history.occurredAt),
+                            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                CustomText(
+                  text: 'Order Status',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                const SizedBox(height: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: potteryOrderStatus.entries.map((entry) {
+                          final isSelected = order.status == entry.key;
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isSelected ? StatusHelper.getStatusColor(entry.key) : Colors.white,
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: isSelected ? Colors.transparent : Colors.grey[300]!),
+                            ),
+                            child: Text(
+                              entry.value,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isSelected ? Colors.white : Colors.grey[600],
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ),
-            ),
-            const SizedBox(height: 5),
-            CustomText(text: 'Customer Name: ${widget.order.users[0].name}'),
-            CustomText(text: 'Email: ${widget.order.users[0].email}'),
-            CustomText(text: 'Phone: ${widget.order.users[0].phoneNumber}'),
-            CustomText(text: 'Description: ${widget.order.description}'),
-            CustomText(
-              text:
-                  'Order Date: ${DateFormatter.formatDate(widget.order.orderDate)}',
-            ),
-            const SizedBox(height: 10),
-            
-            // Status Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: StatusHelper.getStatusColor(widget.order.status).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: StatusHelper.getStatusColor(widget.order.status)),
-              ),
-              child: Text(
-                'Current Status: ${StatusHelper.getStatusLabel(widget.order.status)}',
-                style: TextStyle(
-                  color: StatusHelper.getStatusColor(widget.order.status),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-
-            // Status Histories
-            if (widget.order.statusHistories.isNotEmpty) ...[
-              CustomText(
-                text: 'Status History',
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey[200]!),
-                ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: widget.order.statusHistories.length,
-                  separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[200]),
-                  itemBuilder: (context, index) {
-                    final history = widget.order.statusHistories[index];
-                    return ListTile(
-                      dense: true,
-                      title: Text(
-                        StatusHelper.getStatusLabel(history.toStatus),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(
-                        history.fromStatus != null 
-                          ? 'From: ${StatusHelper.getStatusLabel(history.fromStatus!)}'
-                          : 'Initial status',
-                      ),
-                      trailing: Text(
-                        DateFormatter.formatDate(history.occurredAt),
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-
-            CustomText(
-              text: 'Order Status',
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-            const SizedBox(height: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: potteryOrderStatus.entries.map((entry) {
-                      final isSelected = widget.order.status == entry.key;
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: isSelected ? StatusHelper.getStatusColor(entry.key) : Colors.white,
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: isSelected ? Colors.transparent : Colors.grey[300]!),
-                        ),
-                        child: Text(
-                          entry.value,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: isSelected ? Colors.white : Colors.grey[600],
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

@@ -21,6 +21,9 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 //  Flag to track initialization status
 bool _initializationComplete = false;
 
+/// Global navigator key to access context from anywhere (for refreshing cubits)
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -144,6 +147,9 @@ Future<void> _setupMessaging() async {
           payload: data['screen'],
         );
       }
+
+      // Refresh data in the current view when a foreground notification arrives
+      _refreshCurrentData();
     });
 
     FirebaseMessaging.instance.getInitialMessage().then((message) {
@@ -185,6 +191,33 @@ Future<void> _setupMessaging() async {
   } catch (e) {
     print('❌ Error in messaging setup: $e');
     _initializationComplete = true; // Mark complete even if error
+  }
+}
+
+/// Refresh all data when a foreground notification is received
+void _refreshCurrentData() {
+  try {
+    final context = navigatorKey.currentContext;
+    if (context == null) {
+      print('⚠️ No context available to refresh data');
+      return;
+    }
+
+    print('🔄 Refreshing data after foreground notification...');
+
+    // Refresh orders (root-level cubit)
+    try {
+      context.read<OrderCubit>().fetchOrders();
+      print('✅ Orders refreshed');
+    } catch (_) {}
+
+    // Refresh chat list (root-level cubit)
+    try {
+      context.read<ChatCubit>().loadChatList();
+      print('✅ Chat list refreshed');
+    } catch (_) {}
+  } catch (e) {
+    print('❌ Error refreshing data: $e');
   }
 }
 
@@ -234,6 +267,7 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         theme: ThemeData(
           scaffoldBackgroundColor: Colors.white,
           fontFamily: 'Poppins',

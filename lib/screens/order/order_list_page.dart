@@ -43,33 +43,24 @@ class _OrderListPageState extends State<OrderListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final authCubit = context.read<AuthCubit>();
-    return BlocProvider(
-      create: (context) =>
-          OrderCubit(authCubit: context.read<AuthCubit>())
-            ..fetchOrders(),
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: BlocBuilder<OrderCubit, OrderState>(
-          builder: (context, orderstate) {
-            final currentUser = context
-                .read<AuthCubit>()
-                .state
-                .currentUserModel;
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: BlocBuilder<OrderCubit, OrderState>(
+        builder: (context, orderstate) {
+          final currentUser = context.read<AuthCubit>().state.currentUserModel;
 
-            if (currentUser != null) {
-              print('Current User: ${currentUser.email}');
-              print('User Name: ${currentUser.name}');
-            }
+          if (currentUser != null) {
+            print('Current User: ${currentUser.email}');
+            print('User Name: ${currentUser.name}');
+          }
 
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: _buildBody(orderstate),
-              ),
-            );
-          },
-        ),
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: _buildBody(orderstate),
+            ),
+          );
+        },
       ),
     );
   }

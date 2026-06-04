@@ -55,6 +55,13 @@ class OrderCubit extends Cubit<OrderState> {
 
   /// Categorize orders by status
   void _categorizeOrders(List<OrderModel> fetchedOrders) {
+    // Sort orders by most recently added first
+    fetchedOrders.sort((a, b) {
+      final aDate = int.tryParse(a.orderDate) ?? 0;
+      final bDate = int.tryParse(b.orderDate) ?? 0;
+      return bDate.compareTo(aDate);
+    });
+
     final List<OrderModel> active = [];
     final List<OrderModel> prepared = [];
     final List<OrderModel> unCollected = [];

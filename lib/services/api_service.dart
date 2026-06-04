@@ -2,6 +2,11 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+
+// ... other imports ...
+
 class ApiService {
   // TODO: Update this to your production URL
   static const String baseUrl = 'https://studio.tech2view.org';
@@ -18,12 +23,22 @@ class ApiService {
 
   // ==================== INITIALIZATION ====================
 
+  static String _prettyPrint(dynamic data) {
+    if (data == null) return 'null';
+    try {
+      const encoder = JsonEncoder.withIndent('  ');
+      return encoder.convert(data);
+    } catch (e) {
+      return data.toString();
+    }
+  }
+
   /// Call once in main.dart before runApp()
   static void init() {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        print('🚀 API REQUEST[${options.method}] => PATH: ${options.path}');
-        print('   Data: ${options.data}');
+        debugPrint('🚀 API REQUEST[${options.method}] => PATH: ${options.path}');
+        debugPrint('   Data: ${_prettyPrint(options.data)}');
         final token = await _storage.read(key: _tokenKey);
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
@@ -31,14 +46,14 @@ class ApiService {
         return handler.next(options);
       },
       onResponse: (response, handler) {
-        print('✅ API RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}');
-        print('   Data: ${response.data}');
+        debugPrint('✅ API RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}');
+        debugPrint('   Data: ${_prettyPrint(response.data)}');
         return handler.next(response);
       },
       onError: (error, handler) {
-        print('❌ API ERROR[${error.response?.statusCode}] => PATH: ${error.requestOptions.path}');
-        print('   Message: ${error.message}');
-        print('   Data: ${error.response?.data}');
+        debugPrint('❌ API ERROR[${error.response?.statusCode}] => PATH: ${error.requestOptions.path}');
+        debugPrint('   Message: ${error.message}');
+        debugPrint('   Data: ${_prettyPrint(error.response?.data)}');
         if (error.response?.statusCode == 401) {
           // Token expired or invalid — clear it
           clearToken();
