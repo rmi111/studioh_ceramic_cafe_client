@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/notification_cubit/notification_cubit.dart';
 import 'package:studioh_ceramic_cafe_client/model/app_notification.dart';
+import 'package:studioh_ceramic_cafe_client/screens/notifications/notification_navigator.dart';
 import 'package:studioh_ceramic_cafe_client/utils/constant/app_colors.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -144,8 +145,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   notification: item,
                   icon: _iconFor(item.shortType),
                   timeAgo: _timeAgo(item.createdAt),
-                  onTap: () =>
-                      context.read<NotificationCubit>().markAsRead(item),
+                  onTap: () {
+                    // Mark read immediately, then open what it refers to.
+                    context.read<NotificationCubit>().markAsRead(item);
+                    NotificationNavigator.open(context, item);
+                  },
                 );
               },
             ),
