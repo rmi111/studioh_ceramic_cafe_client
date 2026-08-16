@@ -14,13 +14,16 @@ import FirebaseCore
       FirebaseApp.configure()
     }
 
-    // Set notification delegate so foreground notifications are displayed
-    UNUserNotificationCenter.current().delegate = self
-
     // Register with APNs for remote notifications
     application.registerForRemoteNotifications()
 
     GeneratedPluginRegistrant.register(with: self)
+
+    // Must come AFTER plugin registration. flutter_local_notifications registers after
+    // firebase_messaging and claims UNUserNotificationCenter.delegate, which stops
+    // firebase_messaging receiving foreground pushes — onMessage never fires on iOS.
+    // Reclaiming it for FlutterAppDelegate (which firebase_messaging swizzles) restores it.
+    UNUserNotificationCenter.current().delegate = self
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

@@ -11,12 +11,14 @@ class ApiService {
   // TODO: Update this to your production URL
   static const String baseUrl = 'https://studio.tech2view.org';
 
-  static final Dio _dio = Dio(BaseOptions(
-    baseUrl: '$baseUrl/api/v1',
-    headers: {'Accept': 'application/json'},
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 15),
-  ));
+  static final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: '$baseUrl/api/v1',
+      headers: {'Accept': 'application/json'},
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+    ),
+  );
 
   static const _storage = FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
@@ -35,32 +37,40 @@ class ApiService {
 
   /// Call once in main.dart before runApp()
   static void init() {
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        debugPrint('🚀 API REQUEST[${options.method}] => PATH: ${options.path}');
-        debugPrint('   Data: ${_prettyPrint(options.data)}');
-        final token = await _storage.read(key: _tokenKey);
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        return handler.next(options);
-      },
-      onResponse: (response, handler) {
-        debugPrint('✅ API RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}');
-        debugPrint('   Data: ${_prettyPrint(response.data)}');
-        return handler.next(response);
-      },
-      onError: (error, handler) {
-        debugPrint('❌ API ERROR[${error.response?.statusCode}] => PATH: ${error.requestOptions.path}');
-        debugPrint('   Message: ${error.message}');
-        debugPrint('   Data: ${_prettyPrint(error.response?.data)}');
-        if (error.response?.statusCode == 401) {
-          // Token expired or invalid — clear it
-          clearToken();
-        }
-        return handler.next(error);
-      },
-    ));
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          debugPrint(
+            '🚀 API REQUEST[${options.method}] => PATH: ${options.path}',
+          );
+          debugPrint('   Data: ${_prettyPrint(options.data)}');
+          final token = await _storage.read(key: _tokenKey);
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          debugPrint(
+            '✅ API RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}',
+          );
+          debugPrint('   Data: ${_prettyPrint(response.data)}');
+          return handler.next(response);
+        },
+        onError: (error, handler) {
+          debugPrint(
+            '❌ API ERROR[${error.response?.statusCode}] => PATH: ${error.requestOptions.path}',
+          );
+          debugPrint('   Message: ${error.message}');
+          debugPrint('   Data: ${_prettyPrint(error.response?.data)}');
+          if (error.response?.statusCode == 401) {
+            // Token expired or invalid — clear it
+            clearToken();
+          }
+          return handler.next(error);
+        },
+      ),
+    );
   }
 
   // ==================== TOKEN MANAGEMENT ====================
@@ -89,22 +99,20 @@ class ApiService {
     required String name,
     String? phoneNumber,
     required String password,
-  }) =>
-      _dio.post('/auth/register', data: {
-        'email': email,
-        'name': name,
-        'phone_number': phoneNumber,
-        'password': password,
-      });
+  }) => _dio.post(
+    '/auth/register',
+    data: {
+      'email': email,
+      'name': name,
+      'phone_number': phoneNumber,
+      'password': password,
+    },
+  );
 
   static Future<Response> login({
     required String email,
     required String password,
-  }) =>
-      _dio.post('/auth/login', data: {
-        'email': email,
-        'password': password,
-      });
+  }) => _dio.post('/auth/login', data: {'email': email, 'password': password});
 
   static Future<Response> loginEmail({required String email}) =>
       _dio.post('/auth/login-email', data: {'email': email});
@@ -119,12 +127,14 @@ class ApiService {
     String? type,
     String? search,
     int perPage = 20,
-  }) =>
-      _dio.get('/users', queryParameters: {
-        if (type != null) 'type': type,
-        if (search != null && search.isNotEmpty) 'search': search,
-        'per_page': perPage,
-      });
+  }) => _dio.get(
+    '/users',
+    queryParameters: {
+      if (type != null) 'type': type,
+      if (search != null && search.isNotEmpty) 'search': search,
+      'per_page': perPage,
+    },
+  );
 
   static Future<Response> createUser({
     required String email,
@@ -132,28 +142,32 @@ class ApiService {
     String? phoneNumber,
     String userType = 'customer',
     required String password,
-  }) =>
-      _dio.post('/users', data: {
-        'email': email,
-        'name': name,
-        'phone_number': phoneNumber,
-        'user_type': userType,
-        'password': password,
-      });
+  }) => _dio.post(
+    '/users',
+    data: {
+      'email': email,
+      'name': name,
+      'phone_number': phoneNumber,
+      'user_type': userType,
+      'password': password,
+    },
+  );
 
   static Future<Response> showUser(int userId) => _dio.get('/users/$userId');
 
-  static Future<Response> updateUser(
-          int userId, Map<String, dynamic> data) =>
+  static Future<Response> updateUser(int userId, Map<String, dynamic> data) =>
       _dio.patch('/users/$userId', data: data);
 
   // ==================== ORDERS ====================
 
   static Future<Response> myOrders({String? status, int perPage = 20}) =>
-      _dio.get('/orders/my-orders', queryParameters: {
-        if (status != null) 'status': status,
-        'per_page': perPage,
-      });
+      _dio.get(
+        '/orders/my-orders',
+        queryParameters: {
+          if (status != null) 'status': status,
+          'per_page': perPage,
+        },
+      );
 
   static Future<Response> categorizedOrders() =>
       _dio.get('/orders/categorized');
@@ -165,10 +179,13 @@ class ApiService {
       _dio.get('/orders/$orderRef');
 
   static Future<Response> listOrders({String? status, int perPage = 20}) =>
-      _dio.get('/orders', queryParameters: {
-        if (status != null) 'status': status,
-        'per_page': perPage,
-      });
+      _dio.get(
+        '/orders',
+        queryParameters: {
+          if (status != null) 'status': status,
+          'per_page': perPage,
+        },
+      );
 
   static Future<Response> generateRef() => _dio.get('/orders/generate-ref');
 
@@ -178,14 +195,16 @@ class ApiService {
     String? phoneNumber,
     String? name,
     String? description,
-  }) =>
-      _dio.post('/orders', data: {
-        'ref_number': refNumber,
-        'email': email,
-        'phone_number': phoneNumber,
-        'name': name ?? '',
-        'description': description ?? '',
-      });
+  }) => _dio.post(
+    '/orders',
+    data: {
+      'ref_number': refNumber,
+      'email': email,
+      'phone_number': phoneNumber,
+      'name': name ?? '',
+      'description': description ?? '',
+    },
+  );
 
   static Future<Response> updateOrderStatus(String orderRef, String status) =>
       _dio.put('/orders/$orderRef/status', data: {'status': status});
@@ -195,22 +214,26 @@ class ApiService {
     required String email,
     String? name,
     String? phoneNumber,
-  }) =>
-      _dio.post('/orders/$orderRef/users', data: {
-        'email': email,
-        'name': name ?? '',
-        'phone_number': phoneNumber,
-      });
+  }) => _dio.post(
+    '/orders/$orderRef/users',
+    data: {'email': email, 'name': name ?? '', 'phone_number': phoneNumber},
+  );
 
   static Future<Response> addOrderImages(
-      String orderRef, List<File> images) async {
+    String orderRef,
+    List<File> images,
+  ) async {
     final formData = FormData();
     for (final img in images) {
-      formData.files.add(MapEntry(
-        'images[]',
-        await MultipartFile.fromFile(img.path,
-            filename: img.path.split('/').last),
-      ));
+      formData.files.add(
+        MapEntry(
+          'images[]',
+          await MultipartFile.fromFile(
+            img.path,
+            filename: img.path.split('/').last,
+          ),
+        ),
+      );
     }
     return _dio.post('/orders/$orderRef/images', data: formData);
   }
@@ -221,10 +244,10 @@ class ApiService {
   // ==================== VOUCHERS ====================
 
   static Future<Response> listVouchers({String? type, int perPage = 20}) =>
-      _dio.get('/vouchers', queryParameters: {
-        if (type != null) 'type': type,
-        'per_page': perPage,
-      });
+      _dio.get(
+        '/vouchers',
+        queryParameters: {if (type != null) 'type': type, 'per_page': perPage},
+      );
 
   static Future<Response> showVoucher(String code) =>
       _dio.get('/vouchers/$code');
@@ -235,35 +258,32 @@ class ApiService {
   static Future<Response> redeemVoucher({
     required String code,
     required String email,
-  }) =>
-      _dio.post('/vouchers/redeem', data: {
-        'code': code,
-        'email': email,
-      });
+  }) => _dio.post('/vouchers/redeem', data: {'code': code, 'email': email});
 
   static Future<Response> createVoucher({
     required String type,
     required String value,
     required String description,
     required int expiryDays,
-  }) =>
-      _dio.post('/vouchers', data: {
-        'type': type,
-        'value': value,
-        'description': description,
-        'expiry_days': expiryDays,
-      });
+  }) => _dio.post(
+    '/vouchers',
+    data: {
+      'type': type,
+      'value': value,
+      'description': description,
+      'expiry_days': expiryDays,
+    },
+  );
 
   static Future<Response> updateVoucher(
-          String code, Map<String, dynamic> data) =>
-      _dio.patch('/vouchers/$code', data: data);
+    String code,
+    Map<String, dynamic> data,
+  ) => _dio.patch('/vouchers/$code', data: data);
 
   // ==================== ADVERTISEMENTS ====================
 
   static Future<Response> listAds({String? status}) =>
-      _dio.get('/ads', queryParameters: {
-        if (status != null) 'status': status,
-      });
+      _dio.get('/ads', queryParameters: {if (status != null) 'status': status});
 
   static Future<Response> createAd({
     required String title,
@@ -277,23 +297,21 @@ class ApiService {
       'body': body,
       'status': status,
       if (scheduledAt != null) 'scheduled_at': scheduledAt,
-      if (image != null)
-        'image': await MultipartFile.fromFile(image.path),
+      if (image != null) 'image': await MultipartFile.fromFile(image.path),
     });
     return _dio.post('/ads', data: formData);
   }
 
-  static Future<Response> updateAd(
-          int adId, Map<String, dynamic> data) =>
+  static Future<Response> updateAd(int adId, Map<String, dynamic> data) =>
       _dio.patch('/ads/$adId', data: data);
 
   static Future<Response> deleteAd(int adId) => _dio.delete('/ads/$adId');
 
   // ==================== USER NOTIFICATIONS ====================
 
-  static Future<Response> listNotifications({int perPage = 20}) =>
+  static Future<Response> listNotifications({int perPage = 20, int page = 1}) =>
       _dio.get('/user-notifications',
-          queryParameters: {'per_page': perPage});
+          queryParameters: {'per_page': perPage, 'page': page});
 
   static Future<Response> markNotificationRead(String id) =>
       _dio.post('/user-notifications/$id/read');
@@ -308,29 +326,32 @@ class ApiService {
     required String body,
     String? topic,
     Map<String, dynamic>? data,
-  }) =>
-      _dio.post('/notifications/send', data: {
-        'title': title,
-        'body': body,
-        if (topic != null) 'topic': topic,
-        if (data != null) 'data': data,
-      });
+  }) => _dio.post(
+    '/notifications/send',
+    data: {
+      'title': title,
+      'body': body,
+      if (topic != null) 'topic': topic,
+      if (data != null) 'data': data,
+    },
+  );
 
   // ==================== DEVICES ====================
 
   static Future<Response> registerDevice({
     required String fcmToken,
     required String platform,
-  }) =>
-      _dio.post('/devices/register', data: {
-        'fcm_token': fcmToken,
-        'platform': platform,
-      });
+  }) => _dio.post(
+    '/devices/register',
+    data: {'fcm_token': fcmToken, 'platform': platform},
+  );
 
   // ==================== UPLOAD ====================
 
-  static Future<Response> uploadImage(File file,
-      {String folder = 'uploads'}) async {
+  static Future<Response> uploadImage(
+    File file, {
+    String folder = 'uploads',
+  }) async {
     final formData = FormData.fromMap({
       'image': await MultipartFile.fromFile(file.path),
       'folder': folder,

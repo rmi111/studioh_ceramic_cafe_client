@@ -8,6 +8,7 @@ import 'package:lottie/lottie.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/auth_cubit/auth_cubit.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/chat_cubit/chat_cubit.dart';
+import 'package:studioh_ceramic_cafe_client/cubit/notification_cubit/notification_cubit.dart';
 import 'package:studioh_ceramic_cafe_client/firebase_options.dart';
 import 'package:studioh_ceramic_cafe_client/screens/splash_screen.dart';
 import 'package:studioh_ceramic_cafe_client/utils/route/app_router.dart';
@@ -59,8 +60,10 @@ Future<void> _setupMessaging() async {
     print('Setting up messaging in background...');
 
     //  Request permissions (iOS only)
+    // provisional: false — provisional authorisation delivers quietly (Notification
+    // Centre only, no banner, no sound) and never shows the permission prompt.
     await FirebaseMessaging.instance.requestPermission(
-      provisional: true,
+      provisional: false,
       alert: true,
       badge: true,
       sound: true,
@@ -216,6 +219,13 @@ void _refreshCurrentData() {
       context.read<ChatCubit>().loadChatList();
       print('✅ Chat list refreshed');
     } catch (_) {}
+
+    // Update the notification bell badge — the push has just been recorded
+    // server-side, so the unread count has changed.
+    try {
+      context.read<NotificationCubit>().refreshUnreadCount();
+      print('✅ Notification badge refreshed');
+    } catch (_) {}
   } catch (e) {
     print('❌ Error refreshing data: $e');
   }
@@ -254,6 +264,8 @@ class MyApp extends StatelessWidget {
       providers: [
         // AuthCubit - created once
         BlocProvider<AuthCubit>(create: (_) => AuthCubit()),
+        // Drives the notification panel and its bell badge
+        BlocProvider<NotificationCubit>(create: (_) => NotificationCubit()),
         // OrderCubit depends on AuthCubit
         BlocProvider<OrderCubit>(
           create: (context) => OrderCubit(authCubit: context.read<AuthCubit>()),
