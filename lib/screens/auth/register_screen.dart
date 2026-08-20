@@ -16,6 +16,10 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  /// AuthCubit is provided at the root, so the login screen listens to the same
+  /// state and would also navigate. Only navigate once, from the visible route.
+  bool _navigating = false;
+
   late TextEditingController nameController;
   late TextEditingController emailController;
   late TextEditingController phoneNumberController;
@@ -23,9 +27,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    nameController = TextEditingController(text: "aaa111");
-    emailController = TextEditingController(text: "rminc0102@gmail.com");
-    phoneNumberController = TextEditingController(text: "27721234567");
+    nameController = TextEditingController();
+    emailController = TextEditingController();
+    phoneNumberController = TextEditingController();
   }
 
   @override
@@ -88,6 +92,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     // Navigate to home
     if (context.mounted) {
       Navigator.pushReplacementNamed(context, AppRoutes.home);
+    } else {
+      _navigating = false;
     }
   }
 
@@ -100,10 +106,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
           AppSnackbar.showError(context, state.message);
         }
 
+        // Only the visible route should react.
+        final isVisible = ModalRoute.of(context)?.isCurrent ?? false;
+        if (!isVisible) return;
+
         // Handle successful registration — show welcome and navigate to home
         if (state.isLoggedIn &&
             state.currentUserModel != null &&
-            !state.isLoading) {
+            !state.isLoading &&
+            !_navigating) {
+          _navigating = true;
           AppSnackbar.show(context, 'Registration Successful! 🎉');
           _showWelcomeAndNavigate(context, state);
         }

@@ -26,9 +26,36 @@ class AuthCubit extends Cubit<AuthState> {
       FlutterLocalNotificationsPlugin();
 
   /// Check login status using stored API token
+  /// Key kept in SharedPreferences, which iOS wipes on uninstall.
+  static const _installMarkerKey = 'install_marker';
+
+  /// Drops a token left behind by a previous install.
+  ///
+  /// flutter_secure_storage writes to the iOS Keychain, which deliberately
+  /// survives deleting the app — so a reinstall would silently resume the old
+  /// session instead of showing the login screen. SharedPreferences does not
+  /// survive, so its absence tells us this is a fresh install.
+  Future<void> _clearSessionIfFreshInstall() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(_installMarkerKey) == true) {
+        return;
+      }
+
+      print('🧹 Fresh install detected — clearing any leftover session');
+      await ApiService.clearToken();
+      await prefs.setBool(_installMarkerKey, true);
+    } catch (e) {
+      // Never block startup over this.
+      print('⚠️ Install marker check failed: $e');
+    }
+  }
+
   Future<void> checkLoginStatus() async {
     print('🔍 Checking login status...');
     emit(state.copyWith(isLoading: true));
+
+    await _clearSessionIfFreshInstall();
 
     try {
       final hasToken = await ApiService.hasToken();
@@ -159,7 +186,15 @@ class AuthCubit extends Cubit<AuthState> {
   /// Email-only login (no password required for customers)
   Future<void> loginWithEmail(String email) async {
     print('📧 Attempting email login for: $email');
-    emit(state.copyWith(isLoading: true, message: ''));
+    // Clear any previous session before attempting. copyWith keeps isLoggedIn,
+    // so a stale true would make the screen's listener navigate to home on this
+    // very emit — before the request has even returned.
+    emit(state.copyWith(
+      isLoading: true,
+      message: '',
+      isLoggedIn: false,
+      clearUser: true,
+    ));
 
     try {
       final response = await ApiService.loginEmail(email: email);
@@ -244,12 +279,25 @@ class AuthCubit extends Cubit<AuthState> {
       );
 
       final data = response.data;
-      final token = data['token'] ?? data['access_token'];
-      final userData = data['user'] ?? data['data'];
+      // The API wraps everything in "data": {"data": {"user": ..., "token": ...}}.
+      // Reading the top level left the token null, so registration appeared to
+      // succeed while every later request came back 401, and the user parsed
+      // with id 0. Unwrap the same way loginWithEmail does.
+      final responseData = data['data'] ?? data;
+      final token = responseData['token'] ?? responseData['access_token'];
+      final userData = responseData['user'] ?? responseData;
 
-      if (token != null) {
-        await ApiService.saveToken(token);
+      if (token == null) {
+        emit(state.copyWith(
+          isLoading: false,
+          message: '❌ Registration succeeded but no session was returned',
+          isLoggedIn: false,
+          clearUser: true,
+        ));
+        return;
       }
+
+      await ApiService.saveToken(token);
 
       final userModel = userData != null
           ? UserModel.fromJson(userData)

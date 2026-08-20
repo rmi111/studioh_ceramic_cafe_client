@@ -6,15 +6,40 @@ import 'package:studioh_ceramic_cafe_client/utils/widget/custom_btn.dart';
 import '../../utils/route/app_routes.dart';
 import '../../utils/widget/snacke_bar.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final TextEditingController emailController = TextEditingController();
+  State<LoginScreen> createState() => _LoginScreenState();
+}
 
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController emailController = TextEditingController();
+
+  /// AuthCubit is provided at the root, so the register screen listens to the
+  /// same state. Without this, one successful login fires both listeners and
+  /// each pushes home. Also guards against repeated emits on this screen.
+  bool _navigating = false;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    super.dispose();
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return BlocListener<AuthCubit, AuthState>(
       listener: (context, state) {
+        // Only the visible route should react — this screen stays mounted
+        // underneath the register screen.
+        final isVisible = ModalRoute.of(context)?.isCurrent ?? false;
+        if (!isVisible) return;
+
         // Show error messages (check for common error indicators)
         if (state.message.isNotEmpty &&
             !state.isLoggedIn &&
@@ -25,8 +50,10 @@ class LoginScreen extends StatelessWidget {
                 state.message.contains('Error'))) {
           AppSnackbar.showError(context, state.message);
         }
+
         // Show success, trigger welcome, and navigate
-        if (state.isLoggedIn && state.currentUserModel != null) {
+        if (state.isLoggedIn && state.currentUserModel != null && !_navigating) {
+          _navigating = true;
           AppSnackbar.show(context, 'Login Successful');
 
           // Show welcome for first-time users, then navigate
@@ -70,13 +97,6 @@ class LoginScreen extends StatelessWidget {
                             : () async {
                                 final email = emailController.text.trim();
 
-                                bool isValidEmail(String email) {
-                                  final emailRegex = RegExp(
-                                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                                  );
-                                  return emailRegex.hasMatch(email);
-                                }
-
                                 if (email.isEmpty) {
                                   AppSnackbar.show(
                                     context,
@@ -85,7 +105,7 @@ class LoginScreen extends StatelessWidget {
                                   return;
                                 }
 
-                                if (!isValidEmail(email)) {
+                                if (!_isValidEmail(email)) {
                                   AppSnackbar.show(
                                     context,
                                     'Please enter a valid email address.',
@@ -141,6 +161,9 @@ class LoginScreen extends StatelessWidget {
     // Navigate to home
     if (context.mounted) {
       Navigator.pushReplacementNamed(context, AppRoutes.home);
+    } else {
+      // Let a later attempt through if this one could not complete.
+      _navigating = false;
     }
   }
 }
