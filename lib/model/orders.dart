@@ -1,41 +1,121 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:studioh_ceramic_cafe_client/model/user.dart';
+class OrderImage {
+  final int id;
+  final String url;
 
+  OrderImage({required this.id, required this.url});
+
+  factory OrderImage.fromJson(Map<String, dynamic> json) {
+    return OrderImage(
+      id: json['id'] ?? 0,
+      url: json['image_url'] ?? json['url'] ?? '',
+    );
+  }
+}
+
+class OrderStatusHistory {
+  final int id;
+  final String? fromStatus;
+  final String toStatus;
+  final String occurredAt;
+
+  OrderStatusHistory({
+    required this.id,
+    this.fromStatus,
+    required this.toStatus,
+    required this.occurredAt,
+  });
+
+  factory OrderStatusHistory.fromJson(Map<String, dynamic> json) {
+    return OrderStatusHistory(
+      id: json['id'] ?? 0,
+      fromStatus: json['from_status'],
+      toStatus: json['to_status'] ?? '',
+      occurredAt: json['occurred_at'] ?? json['created_at'] ?? '',
+    );
+  }
+}
+
+class OrderUser {
+  final int? id;
+  final String email;
+  final String name;
+  final String? phoneNumber;
+
+  OrderUser({
+    this.id,
+    required this.email,
+    required this.name,
+    this.phoneNumber,
+  });
+
+  factory OrderUser.fromJson(Map<String, dynamic> json) {
+    return OrderUser(
+      id: json['id'],
+      email: json['email'] ?? '',
+      name: json['name'] ?? '',
+      phoneNumber: json['phone_number'] ?? json['phoneNumber'],
+    );
+  }
+}
 
 class OrderModel {
-  final String id;
+  final int id;
   final String refNumber;
-  final List<UserModel> users;
-  final List<String> imgUrl;
-  final int orderDate;
+  final List<OrderUser> users;
+  final List<OrderImage> images;
+  final String orderDate; // ISO string from API
   final String status;
   final String description;
+  final List<OrderStatusHistory> statusHistories;
+
+  /// Convenience getter for backward compat — flat list of image URLs
+  List<String> get imgUrl => images.map((i) => i.url).toList();
 
   OrderModel({
     this.description = '',
     required this.id,
     required this.refNumber,
     required this.users,
-    required this.imgUrl,
+    required this.images,
     required this.orderDate,
     required this.status,
+    this.statusHistories = const [],
   });
-  factory OrderModel.fromMap(Map<String, dynamic> data, String documentId) {
+
+  /// Parse from Laravel API JSON response
+  factory OrderModel.fromJson(Map<String, dynamic> json) {
+    // Parse users — could be a list of objects
+    List<OrderUser> parsedUsers = [];
+    if (json['users'] is List) {
+      parsedUsers = (json['users'] as List)
+          .map((u) => OrderUser.fromJson(u as Map<String, dynamic>))
+          .toList();
+    }
+
+    // Parse images — could be a list of {id, url} objects
+    List<OrderImage> parsedImages = [];
+    if (json['images'] is List) {
+      parsedImages = (json['images'] as List)
+          .map((i) => OrderImage.fromJson(i as Map<String, dynamic>))
+          .toList();
+    }
+
     return OrderModel(
-      id: documentId,
-      refNumber: data['refNumber'] ?? '',
-      users:
-          (data['users'] as List<dynamic>?)?.map((userData) {
-            final map = userData as Map<String, dynamic>;
-            final uid =
-                map['uid'] ?? ''; // 🟢 default to empty string if missing
-            return UserModel.fromMap(map, uid);
-          }).toList() ??
+      id: json['id'] ?? 0,
+      refNumber: json['ref_number'] ?? '',
+      users: parsedUsers,
+      images: parsedImages,
+      orderDate: json['order_date']?.toString() ??
+          json['created_at']?.toString() ??
+          '',
+      status: json['status'] ?? 'ready_for_glaze',
+      description: json['description'] ?? '',
+      statusHistories: (json['status_histories'] as List?)
+              ?.map((h) =>
+                  OrderStatusHistory.fromJson(Map<String, dynamic>.from(h as Map)))
+              .toList() ??
           [],
-      imgUrl: List<String>.from(data['imgUrl'] ?? []),
-      orderDate: data['orderDate'] ?? DateTime.now().millisecondsSinceEpoch,
-      status: data['status'] ?? 'pending',
-      description: data['description'] ?? '',
     );
   }
 }
+

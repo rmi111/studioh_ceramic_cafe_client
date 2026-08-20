@@ -1,12 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:studioh_ceramic_cafe_client/screens/user/admin_list.dart';
 import 'package:studioh_ceramic_cafe_client/utils/widget/snacke_bar.dart';
+import '../../cubit/order_cubit/order_cubit.dart';
 import '../../model/orders.dart';
 import '../../utils/constant/constants.dart';
 import '../../utils/constant/date_formatter.dart';
-import '../../utils/constant/firebase_collection_name.dart';
 import '../../utils/widget/custom_text.dart';
+import '../../utils/constant/status_helper.dart';
 
 class OrderDetailPage extends StatefulWidget {
   final OrderModel order;
@@ -27,158 +28,226 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     super.initState();
   }
 
+  // Client app: status is read-only, updated by admin only
+  // Keeping method signature for compatibility but it's a no-op
   Future<void> updateStatus(BuildContext context, String status) async {
-    print("Clicked");
-    await FirebaseFirestore.instance
-        .collection(FirebaseCollectionName.ORDERS)
-        .doc(widget.order.id)
-        .update({'status': status});
-    setState(() {
-      selectedStatus = status;
-    });
-    AppSnackbar.show(context, "Success \nOrder status updated to $status");
+    // Status updates are handled by the admin app
+    AppSnackbar.show(context, "Status: $status");
+  }
+
+  /// Find the latest version of this order from the cubit state
+  OrderModel _getLatestOrder(OrderState orderState) {
+    try {
+      return orderState.orders.firstWhere(
+        (o) => o.refNumber == widget.order.refNumber,
+      );
+    } catch (_) {
+      // Fallback to the original order if not found (e.g. deleted)
+      return widget.order;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    print("Total Image ${widget.order.imgUrl.length}");
-    return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: Icon(Icons.arrow_back_ios),
-        ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            CustomText(
-              text: 'Order Details',
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
+    return BlocBuilder<OrderCubit, OrderState>(
+      builder: (context, orderState) {
+        final order = _getLatestOrder(orderState);
+
+        print("Total Image ${order.imgUrl.length}");
+        return Scaffold(
+          appBar: AppBar(
+            centerTitle: true,
+            backgroundColor: Colors.white,
+            leading: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.arrow_back_ios),
             ),
-          ],
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 CustomText(
-                  text: 'Order Ref: ${widget.order.refNumber}',
+                  text: 'Order Details',
                   fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-                Spacer(),
-
-                IconButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => 
-                        ChatListPage(order: widget.order),
-                      ),
-                    );
-                  },
-                  icon: Icon(Icons.message, color: Colors.amber),
+                  fontSize: 20,
                 ),
               ],
             ),
-
-            Align(
-              alignment: Alignment.center,
-              child:
-                  widget.order.imgUrl.isNotEmpty &&
-                      widget
-                          .order
-                          .imgUrl[widget.order.imgUrl.length - 1]
-                          .isNotEmpty
-                  ? OrderImageSlider(
-                      imgUrls: widget.order.imgUrl,
-                      initialIndex: widget.order.imgUrl.length - 1,
-                    )
-                  : Container(
-                      margin: EdgeInsets.all(5),
-                      height: 150,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(5),
-                        color: Colors.grey[200],
-                        image: DecorationImage(
-                          image: AssetImage(
-                            'assets/images/no-image-icon-4.png',
-                          ),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
+          ),
+          body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CustomText(
+                      text: 'Order Ref: ${order.refNumber}',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
                     ),
-            ),
-            const SizedBox(height: 5),
-            CustomText(text: 'Customer Name: ${widget.order.users[0].name}'),
-            CustomText(text: 'Email: ${widget.order.users[0].email}'),
-            CustomText(text: 'Phone: ${widget.order.users[0].phoneNumber}'),
-            CustomText(text: 'Description: ${widget.order.description}'),
-            CustomText(
-              text:
-                  'Order Date: ${DateFormatter.formatDate(widget.order.orderDate)}',
-            ),
-            const SizedBox(height: 10),
-            CustomText(
-              text: 'Update Status',
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-            const SizedBox(height: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children:
-                  //statuses.map((status) {
-                  potteryOrderStatus.entries
-                      .toList()
-                      .sublist(potteryOrderStatus.length - 3)
-                      .map((entry) {
-                        final status = entry.key;
-                        final isSelected = selectedStatus == status;
-                        return Container(
-                          margin: const EdgeInsets.symmetric(vertical: 2),
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isSelected
-                                  ? Colors.deepOrange
-                                  : Colors.grey[200],
-                              foregroundColor: isSelected
-                                  ? Colors.white
-                                  : Colors.black,
-                              elevation: isSelected ? 2 : 0,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 8,
-                              ), // smaller height
-                              minimumSize: Size(0, 32), // min height
-                            ),
-                            onPressed: () {},
-                            child: Text(
-                              potteryOrderStatus[status] ?? '',
-                              //status[0].toUpperCase() + status.substring(1),
-                              style: TextStyle(
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                fontSize: 12, // smaller text
-                              ),
-                            ),
+                    Spacer(),
+
+                    IconButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => 
+                            ChatListPage(order: order),
                           ),
                         );
-                      })
-                      .toList(),
+                      },
+                      icon: Icon(Icons.message, color: Colors.amber),
+                    ),
+                  ],
+                ),
+
+                Align(
+                  alignment: Alignment.center,
+                  child:
+                      order.imgUrl.isNotEmpty &&
+                          order
+                              .imgUrl[order.imgUrl.length - 1]
+                              .isNotEmpty
+                      ? OrderImageSlider(
+                          imgUrls: order.imgUrl,
+                          initialIndex: order.imgUrl.length - 1,
+                        )
+                      : Container(
+                          margin: EdgeInsets.all(5),
+                          height: 150,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(5),
+                            color: Colors.grey[200],
+                            image: DecorationImage(
+                              image: AssetImage(
+                                'assets/images/no-image-icon-4.png',
+                              ),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                ),
+                const SizedBox(height: 5),
+                CustomText(text: 'Customer Name: ${order.users[0].name}'),
+                CustomText(text: 'Email: ${order.users[0].email}'),
+                CustomText(text: 'Phone: ${order.users[0].phoneNumber}'),
+                CustomText(text: 'Description: ${order.description}'),
+                CustomText(
+                  text:
+                      'Order Date: ${DateFormatter.formatDate(order.orderDate)}',
+                ),
+                const SizedBox(height: 10),
+                
+                // Status Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: StatusHelper.getStatusColor(order.status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: StatusHelper.getStatusColor(order.status)),
+                  ),
+                  child: Text(
+                    'Current Status: ${StatusHelper.getStatusLabel(order.status)}',
+                    style: TextStyle(
+                      color: StatusHelper.getStatusColor(order.status),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 20),
+
+                // Status Histories
+                if (order.statusHistories.isNotEmpty) ...[
+                  CustomText(
+                    text: 'Status History',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: order.statusHistories.length,
+                      separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[200]),
+                      itemBuilder: (context, index) {
+                        final history = order.statusHistories[index];
+                        return ListTile(
+                          dense: true,
+                          title: Text(
+                            StatusHelper.getStatusLabel(history.toStatus),
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            history.fromStatus != null 
+                              ? 'From: ${StatusHelper.getStatusLabel(history.fromStatus!)}' 
+                              : 'Initial status',
+                          ),
+                          trailing: Text(
+                            DateFormatter.formatDate(history.occurredAt),
+                            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                CustomText(
+                  text: 'Order Status',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                const SizedBox(height: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: potteryOrderStatus.entries.map((entry) {
+                          final isSelected = order.status == entry.key;
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isSelected ? StatusHelper.getStatusColor(entry.key) : Colors.white,
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: isSelected ? Colors.transparent : Colors.grey[300]!),
+                            ),
+                            child: Text(
+                              entry.value,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isSelected ? Colors.white : Colors.grey[600],
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -225,7 +294,7 @@ class OrderImageSliderState extends State<OrderImageSlider> {
               itemBuilder: (context, index) {
                 print("Image Url: ${widget.imgUrls[index]}");
                 return Image.network(
-                  widget.imgUrls[_currentIndex],
+                  widget.imgUrls[index],
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: 200,

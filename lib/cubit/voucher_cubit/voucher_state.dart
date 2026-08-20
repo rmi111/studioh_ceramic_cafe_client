@@ -10,6 +10,7 @@ class VoucherState extends Equatable {
   final Voucher? subscriptionVoucher;
   final List<StoreProduct> availableProducts;
   final bool isLoading;
+  final String errorMessage;
 
   const VoucherState({
     this.allVouchers = const [],
@@ -19,6 +20,7 @@ class VoucherState extends Equatable {
     this.subscriptionVoucher,
     this.availableProducts = const [],
     this.isLoading = false,
+    this.errorMessage = '',
   });
 
   VoucherState copyWith({
@@ -29,6 +31,7 @@ class VoucherState extends Equatable {
     Voucher? subscriptionVoucher,
     List<StoreProduct>? availableProducts,
     bool? isLoading,
+    String? errorMessage,
   }) {
     return VoucherState(
       allVouchers: allVouchers ?? this.allVouchers,
@@ -38,6 +41,7 @@ class VoucherState extends Equatable {
       subscriptionVoucher: subscriptionVoucher ?? this.subscriptionVoucher,
       availableProducts: availableProducts ?? this.availableProducts,
       isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage ?? this.errorMessage,
     );
   }
 
@@ -50,5 +54,6 @@ class VoucherState extends Equatable {
         subscriptionVoucher,
         availableProducts,
         isLoading,
+        errorMessage,
       ];
 }

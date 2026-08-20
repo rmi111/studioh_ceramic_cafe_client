@@ -8,17 +8,22 @@ import 'package:lottie/lottie.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/auth_cubit/auth_cubit.dart';
 import 'package:studioh_ceramic_cafe_client/cubit/chat_cubit/chat_cubit.dart';
+import 'package:studioh_ceramic_cafe_client/cubit/notification_cubit/notification_cubit.dart';
 import 'package:studioh_ceramic_cafe_client/firebase_options.dart';
 import 'package:studioh_ceramic_cafe_client/screens/splash_screen.dart';
 import 'package:studioh_ceramic_cafe_client/utils/route/app_router.dart';
 import 'package:studioh_ceramic_cafe_client/utils/route/app_routes.dart';
 import 'cubit/order_cubit/order_cubit.dart';
+import 'services/api_service.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
 //  Flag to track initialization status
 bool _initializationComplete = false;
+
+/// Global navigator key to access context from anywhere (for refreshing cubits)
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +46,9 @@ void main() async {
     print(' RevenueCat initialization failed: $e');
   }
 
+  // Initialize API service (Dio interceptors)
+  ApiService.init();
+
   runApp(const MyApp());
 
   //  Setup messaging in background (doesn't block UI)
@@ -52,8 +60,10 @@ Future<void> _setupMessaging() async {
     print('Setting up messaging in background...');
 
     //  Request permissions (iOS only)
+    // provisional: false — provisional authorisation delivers quietly (Notification
+    // Centre only, no banner, no sound) and never shows the permission prompt.
     await FirebaseMessaging.instance.requestPermission(
-      provisional: true,
+      provisional: false,
       alert: true,
       badge: true,
       sound: true,
@@ -140,6 +150,9 @@ Future<void> _setupMessaging() async {
           payload: data['screen'],
         );
       }
+
+      // Refresh data in the current view when a foreground notification arrives
+      _refreshCurrentData();
     });
 
     FirebaseMessaging.instance.getInitialMessage().then((message) {
@@ -154,16 +167,67 @@ Future<void> _setupMessaging() async {
       }
     });
 
-    // Token refresh listener
+    // Token refresh listener — also register with Laravel backend
     FirebaseMessaging.instance.onTokenRefresh.listen((token) {
       print('Refreshed FCM Token: $token');
+      ApiService.registerDevice(
+        fcmToken: token,
+        platform: Platform.isIOS ? 'ios' : 'android',
+      ).catchError((_) {});
     });
+
+    // Register FCM token with Laravel backend
+    if (fcmToken != null) {
+      try {
+        await ApiService.registerDevice(
+          fcmToken: fcmToken,
+          platform: Platform.isIOS ? 'ios' : 'android',
+        );
+        print('FCM token registered with backend');
+      } catch (_) {
+        // Silently fail — user may not be logged in yet
+      }
+    }
 
     print('All messaging setup complete');
     _initializationComplete = true;
   } catch (e) {
     print('❌ Error in messaging setup: $e');
     _initializationComplete = true; // Mark complete even if error
+  }
+}
+
+/// Refresh all data when a foreground notification is received
+void _refreshCurrentData() {
+  try {
+    final context = navigatorKey.currentContext;
+    if (context == null) {
+      print('⚠️ No context available to refresh data');
+      return;
+    }
+
+    print('🔄 Refreshing data after foreground notification...');
+
+    // Refresh orders (root-level cubit)
+    try {
+      context.read<OrderCubit>().fetchOrders();
+      print('✅ Orders refreshed');
+    } catch (_) {}
+
+    // Refresh chat list (root-level cubit)
+    try {
+      context.read<ChatCubit>().loadChatList();
+      print('✅ Chat list refreshed');
+    } catch (_) {}
+
+    // Update the notification bell badge — the push has just been recorded
+    // server-side, so the unread count has changed.
+    try {
+      context.read<NotificationCubit>().refreshUnreadCount();
+      print('✅ Notification badge refreshed');
+    } catch (_) {}
+  } catch (e) {
+    print('❌ Error refreshing data: $e');
   }
 }
 
@@ -200,6 +264,8 @@ class MyApp extends StatelessWidget {
       providers: [
         // AuthCubit - created once
         BlocProvider<AuthCubit>(create: (_) => AuthCubit()),
+        // Drives the notification panel and its bell badge
+        BlocProvider<NotificationCubit>(create: (_) => NotificationCubit()),
         // OrderCubit depends on AuthCubit
         BlocProvider<OrderCubit>(
           create: (context) => OrderCubit(authCubit: context.read<AuthCubit>()),
@@ -213,6 +279,7 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         theme: ThemeData(
           scaffoldBackgroundColor: Colors.white,
           fontFamily: 'Poppins',

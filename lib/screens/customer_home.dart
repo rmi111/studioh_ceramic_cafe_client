@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:studioh_ceramic_cafe_client/cubit/notification_cubit/notification_cubit.dart';
 import 'package:studioh_ceramic_cafe_client/screens/chat/user_list.dart';
 import 'package:studioh_ceramic_cafe_client/screens/order/order_list_page.dart';
 import 'package:studioh_ceramic_cafe_client/screens/voucher/voucher_page.dart';
@@ -36,7 +37,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     BottomNavigationBarItem(icon: Icon(Icons.card_giftcard), label: 'Vouchers'),
     BottomNavigationBarItem(
       icon: Icon(Icons.calendar_today),
-      label: 'Book Now',
+      label: 'Orders',
     ),
     BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Message'),
   ];
@@ -128,35 +129,55 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
           Row(
             children: [
               // Notifications
-              Stack(
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      // TODO: Open notifications page
-                    },
-                    icon: Icon(
-                      Icons.notifications_outlined,
-                      color: Colors.grey[800],
-                      size: 26,
-                    ),
-                  ),
-                  // Notification Badge
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
+              BlocBuilder<NotificationCubit, NotificationState>(
+                builder: (context, notificationState) {
+                  final unread = notificationState.unreadCount;
+                  return Stack(
+                    children: [
+                      IconButton(
+                        onPressed: () async {
+                          await Navigator.pushNamed(
+                              context, AppRoutes.notifications);
+                          // Badge may have changed while the panel was open.
+                          if (context.mounted) {
+                            context
+                                .read<NotificationCubit>()
+                                .refreshUnreadCount();
+                          }
+                        },
+                        icon: Icon(
+                          Icons.notifications_outlined,
+                          color: Colors.grey[800],
+                          size: 26,
+                        ),
                       ),
-                      constraints: const BoxConstraints(
-                        minWidth: 8,
-                        minHeight: 8,
-                      ),
-                    ),
-                  ),
-                ],
+                      // Badge only when there is something unread.
+                      if (unread > 0)
+                        Positioned(
+                          right: 4,
+                          top: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            constraints: const BoxConstraints(minWidth: 18),
+                            child: Text(
+                              unread > 99 ? '99+' : '$unread',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
               // Settings
               IconButton(

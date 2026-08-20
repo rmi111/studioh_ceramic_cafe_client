@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:studioh_ceramic_cafe_client/cubit/order_cubit/order_cubit.dart';
 import 'package:studioh_ceramic_cafe_client/model/orders.dart';
 import 'package:studioh_ceramic_cafe_client/utils/constant/app_colors.dart';
 import 'package:studioh_ceramic_cafe_client/utils/constant/constants.dart';
@@ -8,12 +10,16 @@ import 'package:studioh_ceramic_cafe_client/utils/widget/image_slider.dart';
 
 import '../../screens/order/order_details_page.dart';
 import '../constant/date_formatter.dart';
+import '../constant/status_helper.dart';
 
 Widget itemCard(BuildContext context, OrderModel order) {
 
   return GestureDetector(
-    onTap: (){
-      Navigator.push(context, MaterialPageRoute(builder: (context)=>OrderDetailPage(order: order)));
+    onTap: () async {
+      await Navigator.push(context, MaterialPageRoute(builder: (context)=>OrderDetailPage(order: order)));
+      if (context.mounted) {
+        context.read<OrderCubit>().fetchOrders();
+      }
     },
     child: Container(
       width: double.infinity,
@@ -75,13 +81,13 @@ Widget itemCard(BuildContext context, OrderModel order) {
               CustomText(text: DateFormatter.formatDate(order.orderDate)),
               Container(
                 decoration: BoxDecoration(
-                  color: Color(0xFFD38351),
+                  color: StatusHelper.getStatusColor(order.status),
                   borderRadius: BorderRadius.circular(5),
                 ),
 
                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 child: CustomText(
-                  text: potteryOrderStatus[order.status] ?? 'Uncollected',
+                  text: StatusHelper.getStatusLabel(order.status),
                   fontSizeFactor: 0.9,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,

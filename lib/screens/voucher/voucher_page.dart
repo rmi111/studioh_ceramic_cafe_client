@@ -478,8 +478,20 @@ class _VoucherPageState extends State<VoucherPage>
     return Icons.card_giftcard;
   }
 
-  String formatDate(int millis) {
-    DateTime orderedDate = DateTime.fromMillisecondsSinceEpoch(millis);
-    return DateFormat('dd MMM yyyy, h:mm a').format(orderedDate);
+  String formatDate(Object? value) {
+    if (value == null) return '';
+
+    DateTime? date;
+    if (value is int) {
+      date = DateTime.fromMillisecondsSinceEpoch(value);
+    } else if (value is String) {
+      date = DateTime.tryParse(value);
+      date ??= int.tryParse(value) != null
+          ? DateTime.fromMillisecondsSinceEpoch(int.parse(value))
+          : null;
+    }
+
+    if (date == null) return value.toString();
+    return DateFormat('dd MMM yyyy, h:mm a').format(date);
   }
 }
